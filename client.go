@@ -3,6 +3,7 @@ package ghost
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -44,4 +45,9 @@ type Client interface {
 	TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*types.Transaction, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	TransactionSender(ctx context.Context, tx *types.Transaction, block common.Hash, index uint) (common.Address, error)
+}
+
+type ErigonClient interface {
+	ErigonFilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, []time.Time, error)
+	Client
 }
