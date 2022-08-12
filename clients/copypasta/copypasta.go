@@ -9,12 +9,12 @@ import (
 	"sync"
 
 	"gfx.cafe/open/ghost"
+	"gfx.cafe/open/ghost/clients/copypasta/rpc"
 	"gfx.cafe/open/goutil/generic"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // this is really just a copy pasta of go-ethereum ethclient
