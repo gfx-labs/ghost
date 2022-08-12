@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"gfx.cafe/open/ghost"
+	"gfx.cafe/open/goutil/generic"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -20,6 +21,9 @@ import (
 // i did this so that if that one breaks then maybe use this one and it will maybe be okay idk man
 type Client struct {
 	bc *rpc.Client
+
+	bbn generic.MapOf[uint64, *types.Block]
+	bbh generic.MapOf[common.Hash, *types.Block]
 
 	size int
 	mu   sync.RWMutex
@@ -66,16 +70,36 @@ func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
 // Note that loading full blocks requires two requests. Use HeaderByHash
 // if you don't need all transactions or uncle headers.
 func (ec *Client) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
-	return ec.getBlock(ctx, "eth_getBlockByHash", hash, true)
+	if ans, ok := ec.bbh.Load(hash); ok {
+		return ans, nil
+	}
+	return ec.ForceBlockByHash(ctx, hash)
+}
+func (ec *Client) ForceBlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
+	ans, err := ec.getBlock(ctx, "eth_getBlockByHash", hash, true)
+	if err != nil {
+		return nil, err
+	}
+	return ans, nil
 }
 
-// BlockByNumber returns a block from the current canonical chain. If number is nil, the
+// BlockByNumber returns a block from the current canonihal chain. If number is nil, the
 // latest known block is returned.
 //
 // Note that loading full blocks requires two requests. Use HeaderByNumber
 // if you don't need all transactions or uncle headers.
 func (ec *Client) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
-	return ec.getBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), true)
+	if ans, ok := ec.bbn.Load(number.Uint64()); ok {
+		return ans, nil
+	}
+	return ec.ForceBlockByNumber(ctx, number)
+}
+func (ec *Client) ForceBlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+	ans, err := ec.getBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), true)
+	if err != nil {
+		return nil, err
+	}
+	return ans, nil
 }
 
 // BlockNumber returns the most recent block number
@@ -160,7 +184,13 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...any) (*ty
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs, uncles), nil
+	ans, err := types.NewBlockWithHeader(head).WithBody(txs, uncles), nil
+	if err != nil {
+		return nil, err
+	}
+	ec.bbh.Store(ans.Hash(), ans)
+	ec.bbn.Store(ans.Number().Uint64(), ans)
+	return ans, nil
 }
 
 // HeaderByHash returns the block header with the given hash.
