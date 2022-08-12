@@ -15,10 +15,8 @@ var (
 )
 
 type Decoder struct {
-	xs []byte
-
-	cur           int
-	dynamicLayers []int
+	xs  []byte
+	cur int
 }
 
 func NewDecoder(xs []byte) *Decoder {
