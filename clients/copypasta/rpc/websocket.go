@@ -27,9 +27,9 @@ import (
 	"sync"
 	"time"
 
+	"gfx.cafe/open/jsonrpc2/external/websocket"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/gorilla/websocket"
 )
 
 const (

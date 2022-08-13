@@ -28,8 +28,6 @@ import (
 	"net/url"
 	"sync"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -147,8 +145,6 @@ func DialHTTPWithClient(endpoint string, client *http.Client) (*Client, error) {
 func DialHTTP(endpoint string) (*Client, error) {
 	return DialHTTPWithClient(endpoint, new(http.Client))
 }
-
-var jsoni = jsoniter.ConfigDefault
 
 func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) error {
 	hc := c.writeConn.(*httpConn)
