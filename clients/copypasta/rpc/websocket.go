@@ -36,7 +36,7 @@ const (
 	wsReadBuffer       = 1024
 	wsWriteBuffer      = 1024
 	wsPingInterval     = 60 * time.Second
-	wsPingWriteTimeout = 5 * time.Second
+	wsPingWriteTimeout = 10 * time.Second
 	wsPongTimeout      = 30 * time.Second
 	wsMessageSizeLimit = 15 * 1024 * 1024
 )

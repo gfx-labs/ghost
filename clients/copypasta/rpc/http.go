@@ -28,10 +28,12 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
-	maxRequestContentLength = 1024 * 1024 * 5
+	maxRequestContentLength = 1024 * 1024 * 15
 	contentType             = "application/json"
 )
 
@@ -111,9 +113,9 @@ type HTTPTimeouts struct {
 // DefaultHTTPTimeouts represents the default timeout values used if further
 // configuration is not provided.
 var DefaultHTTPTimeouts = HTTPTimeouts{
-	ReadTimeout:       30 * time.Second,
-	ReadHeaderTimeout: 30 * time.Second,
-	WriteTimeout:      30 * time.Second,
+	ReadTimeout:       60 * time.Second,
+	ReadHeaderTimeout: 60 * time.Second,
+	WriteTimeout:      60 * time.Second,
 	IdleTimeout:       120 * time.Second,
 }
 
@@ -146,6 +148,8 @@ func DialHTTP(endpoint string) (*Client, error) {
 	return DialHTTPWithClient(endpoint, new(http.Client))
 }
 
+var jsoni = jsoniter.ConfigDefault
+
 func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) error {
 	hc := c.writeConn.(*httpConn)
 	respBody, err := hc.doRequest(ctx, msg)
@@ -155,7 +159,7 @@ func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) e
 	defer respBody.Close()
 
 	var respmsg jsonrpcMessage
-	if err := json.NewDecoder(respBody).Decode(&respmsg); err != nil {
+	if err := jsoni.NewDecoder(respBody).Decode(&respmsg); err != nil {
 		return err
 	}
 	op.resp <- &respmsg
@@ -170,7 +174,7 @@ func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonr
 	}
 	defer respBody.Close()
 	var respmsgs []jsonrpcMessage
-	if err := json.NewDecoder(respBody).Decode(&respmsgs); err != nil {
+	if err := jsoni.NewDecoder(respBody).Decode(&respmsgs); err != nil {
 		return err
 	}
 	for i := 0; i < len(respmsgs); i++ {
