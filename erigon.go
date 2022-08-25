@@ -7,7 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ledgerwatch/erigon/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type ErigonClient interface {
