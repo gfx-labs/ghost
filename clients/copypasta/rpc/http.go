@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	maxRequestContentLength = 1024 * 1024 * 15
+	maxRequestContentLength = 1024 * 1024 * 5
 	contentType             = "application/json"
 )
 
@@ -42,7 +42,7 @@ type httpConn struct {
 	client    *http.Client
 	url       string
 	closeOnce sync.Once
-	closeCh   chan interface{}
+	closeCh   chan any
 	mu        sync.Mutex // protects headers
 	headers   http.Header
 }
@@ -51,7 +51,7 @@ type httpConn struct {
 // and some methods don't work. The panic() stubs here exist to ensure
 // this special treatment is correct.
 
-func (hc *httpConn) writeJSON(context.Context, interface{}) error {
+func (hc *httpConn) writeJSON(context.Context, any) error {
 	panic("writeJSON called on httpConn")
 }
 
@@ -72,7 +72,7 @@ func (hc *httpConn) close() {
 	hc.closeOnce.Do(func() { close(hc.closeCh) })
 }
 
-func (hc *httpConn) closed() <-chan interface{} {
+func (hc *httpConn) closed() <-chan any {
 	return hc.closeCh
 }
 
@@ -111,9 +111,9 @@ type HTTPTimeouts struct {
 // DefaultHTTPTimeouts represents the default timeout values used if further
 // configuration is not provided.
 var DefaultHTTPTimeouts = HTTPTimeouts{
-	ReadTimeout:       60 * time.Second,
-	ReadHeaderTimeout: 60 * time.Second,
-	WriteTimeout:      60 * time.Second,
+	ReadTimeout:       30 * time.Second,
+	ReadHeaderTimeout: 30 * time.Second,
+	WriteTimeout:      30 * time.Second,
 	IdleTimeout:       120 * time.Second,
 }
 
@@ -135,7 +135,7 @@ func DialHTTPWithClient(endpoint string, client *http.Client) (*Client, error) {
 			client:  client,
 			headers: headers,
 			url:     endpoint,
-			closeCh: make(chan interface{}),
+			closeCh: make(chan any),
 		}
 		return hc, nil
 	})
@@ -146,7 +146,7 @@ func DialHTTP(endpoint string) (*Client, error) {
 	return DialHTTPWithClient(endpoint, new(http.Client))
 }
 
-func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) error {
+func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg any) error {
 	hc := c.writeConn.(*httpConn)
 	respBody, err := hc.doRequest(ctx, msg)
 	if err != nil {
@@ -155,7 +155,7 @@ func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) e
 	defer respBody.Close()
 
 	var respmsg jsonrpcMessage
-	if err := jsoni.NewDecoder(respBody).Decode(&respmsg); err != nil {
+	if err := json.NewDecoder(respBody).Decode(&respmsg); err != nil {
 		return err
 	}
 	op.resp <- &respmsg
@@ -170,7 +170,7 @@ func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonr
 	}
 	defer respBody.Close()
 	var respmsgs []jsonrpcMessage
-	if err := jsoni.NewDecoder(respBody).Decode(&respmsgs); err != nil {
+	if err := json.NewDecoder(respBody).Decode(&respmsgs); err != nil {
 		return err
 	}
 	for i := 0; i < len(respmsgs); i++ {
@@ -179,7 +179,7 @@ func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonr
 	return nil
 }
 
-func (hc *httpConn) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser, error) {
+func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err

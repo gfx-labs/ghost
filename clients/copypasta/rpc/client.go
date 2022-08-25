@@ -317,7 +317,7 @@ func (c *Client) CallContext(ctx context.Context, result any, method string, arg
 	case len(resp.Result) == 0:
 		return ErrNoResult
 	default:
-		return jsoni.Unmarshal(resp.Result, &result)
+		return json.Unmarshal(resp.Result, &result)
 	}
 }
 
@@ -387,7 +387,7 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 			elem.Error = ErrNoResult
 			continue
 		}
-		elem.Error = jsoni.Unmarshal(resp.Result, elem.Result)
+		elem.Error = json.Unmarshal(resp.Result, elem.Result)
 	}
 	return err
 }
@@ -468,7 +468,7 @@ func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, er
 	msg := &jsonrpcMessage{Version: vsn, ID: c.nextID(), Method: method}
 	if paramsIn != nil { // prevent sending "params":null
 		var err error
-		if msg.Params, err = jsoni.Marshal(paramsIn); err != nil {
+		if msg.Params, err = json.Marshal(paramsIn); err != nil {
 			return nil, err
 		}
 	}

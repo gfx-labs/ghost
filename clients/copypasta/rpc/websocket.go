@@ -27,16 +27,16 @@ import (
 	"sync"
 	"time"
 
-	"gfx.cafe/open/jsonrpc2/external/websocket"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/gorilla/websocket"
 )
 
 const (
 	wsReadBuffer       = 1024
 	wsWriteBuffer      = 1024
 	wsPingInterval     = 60 * time.Second
-	wsPingWriteTimeout = 10 * time.Second
+	wsPingWriteTimeout = 5 * time.Second
 	wsPongTimeout      = 30 * time.Second
 	wsMessageSizeLimit = 15 * 1024 * 1024
 )

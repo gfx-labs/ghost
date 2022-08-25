@@ -42,7 +42,7 @@ type Error interface {
 // A DataError contains some data in addition to the error message.
 type DataError interface {
 	Error() string          // returns the message
-	ErrorData() interface{} // returns the error data
+	ErrorData() any // returns the error data
 }
 
 // Error types defined below are the built-in JSON-RPC errors.
