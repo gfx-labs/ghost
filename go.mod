@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	gfx.cafe/open/goutil v1.9.1
-	gfx.cafe/open/jrpc v0.0.1
+	gfx.cafe/open/jrpc v0.0.8
 	github.com/ethereum/go-ethereum v1.10.22
 )
 
