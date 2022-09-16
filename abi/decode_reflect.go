@@ -161,7 +161,7 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		switch target.Kind() {
 		case reflect.Pointer:
 			if target.Type().AssignableTo(typeBigIntPtr) {
-				target.Set(reflect.ValueOf(*ui.ToBig()))
+				target.Set(reflect.ValueOf(ui.ToBig()))
 				return nil
 			}
 			t2 := reflect.New(target.Type().Elem())
@@ -178,7 +178,7 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 			target.SetFloat(float64(ui.Uint64()))
 		case reflect.Struct:
 			if target.Type().AssignableTo(typeBigInt) {
-				target.Set(reflect.ValueOf(ui.ToBig()))
+				target.Set(reflect.ValueOf(*ui.ToBig()))
 			}
 		case reflect.Slice:
 			switch target.Type().Elem().Kind() {

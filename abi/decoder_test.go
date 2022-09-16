@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 )
 
 func TestThing(t *testing.T) {
@@ -84,10 +83,10 @@ func TestDynamicExampleType(t *testing.T) {
 	`)
 
 	type f struct {
-		A uint256.Int `abi:"int64"`
-		B []uint      `abi:"uint64[]"`
-		C []byte      `abi:"bytes10"`
-		D string      `abi:"string"`
+		A big.Int `abi:"int64"`
+		B []uint  `abi:"uint64[]"`
+		C []byte  `abi:"bytes10"`
+		D string  `abi:"string"`
 	}
 
 	var r f
@@ -95,7 +94,7 @@ func TestDynamicExampleType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.A.ToBig().Int64() != 0x123 {
+	if r.A.Int64() != 0x123 {
 		t.Errorf("expect %v got %v", 0x123, r.A)
 	}
 	if !reflect.DeepEqual(r.B, []uint{0x456, 0x789}) {
