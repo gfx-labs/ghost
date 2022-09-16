@@ -32,6 +32,11 @@ func (s Signature) Selector() [4]byte {
 	return [4]byte{h[0], h[1], h[2], h[3]}
 }
 
+func (s Signature) Fn() []byte {
+	h := s.Hash()
+	return []byte{h[0], h[1], h[2], h[3]}
+}
+
 // represents a valid evm abi type.
 type TypeName string
 
