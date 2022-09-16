@@ -18,16 +18,16 @@ func SIG(s string, t ...TypeName) Signature {
 	return Signature(s + string(TUPLE(t...)))
 }
 
-func (s *Signature) Hash() common.Hash {
-	if have, ok := sigCache.Load(string(*s)); ok {
+func (s Signature) Hash() common.Hash {
+	if have, ok := sigCache.Load(string(s)); ok {
 		return have
 	}
-	ans := common.BytesToHash(crypto.Keccak256([]byte(*s)))
-	sigCache.Store(string(*s), ans)
+	ans := common.BytesToHash(crypto.Keccak256([]byte(s)))
+	sigCache.Store(string(s), ans)
 	return ans
 }
 
-func (s *Signature) Selector() [4]byte {
+func (s Signature) Selector() [4]byte {
 	h := s.Hash()
 	return [4]byte{h[0], h[1], h[2], h[3]}
 }
@@ -35,19 +35,19 @@ func (s *Signature) Selector() [4]byte {
 // represents a valid evm abi type.
 type TypeName string
 
-func (t *TypeName) IsSlice() bool {
-	return strings.HasSuffix(string(*t), "[]")
+func (t TypeName) IsSlice() bool {
+	return strings.HasSuffix(string(t), "[]")
 }
-func (t *TypeName) IsTuple() bool {
-	return strings.HasPrefix(string(*t), "(")
+func (t TypeName) IsTuple() bool {
+	return strings.HasPrefix(string(t), "(")
 }
-func (t *TypeName) IsSimple() bool {
+func (t TypeName) IsSimple() bool {
 	return (!t.IsSlice()) && (!t.IsTuple())
 }
 
-func (t *TypeName) TupleArgs() []TypeName {
+func (t TypeName) TupleArgs() []TypeName {
 	out := make([]TypeName, 0, 4)
-	str := strings.NewReader(string(*t))
+	str := strings.NewReader(string(t))
 	var cur strings.Builder
 	str.ReadRune()
 	state := 0
@@ -83,8 +83,8 @@ func SLICE(t TypeName) TypeName {
 	return TypeName(t + "[]")
 }
 
-func (t *TypeName) UnSlice() TypeName {
-	return TypeName(strings.TrimSuffix(string(*t), "[]"))
+func (t TypeName) UnSlice() TypeName {
+	return TypeName(strings.TrimSuffix(string(t), "[]"))
 }
 
 func FIXED(M, N int) TypeName {
