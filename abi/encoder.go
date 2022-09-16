@@ -7,50 +7,48 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type Encoder struct {
+type Builder struct {
 	xs  []byte
 	cur int
 }
 
-func NewEncoder(xs []byte) *Encoder {
-	return &Encoder{
+func NewBuilder(xs []byte) *Builder {
+	return &Builder{
 		xs: xs,
 	}
 }
 
-func (d *Encoder) Write(o []byte) int {
+func (d *Builder) Write(o []byte) {
 	d.xs = append(d.xs, o...)
-	return len(o)
 }
 
-func (d *Encoder) WriteNPadRight32(xs []byte) {
+func (d *Builder) WriteNPadRight32(xs []byte) {
 	diff := 32 - (len(xs) % 32)
 	if diff == 32 {
 		diff = 0
 	}
 	o := append(xs, make([]byte, diff)...)
-	_ = d.Write(o[:])
-	return
+	d.Write(o[:])
 }
-func (d *Encoder) WriteWord(xs []byte) {
+func (d *Builder) WriteWord(xs []byte) {
 	diff := 32 - (len(xs) % 32)
 	if diff == 32 {
 		diff = 0
 	}
 	o := append(make([]byte, diff), xs...)
-	_ = d.Write(o[:])
+	d.Write(o[:])
 	return
 }
 
-func (d *Encoder) WriteBigUint(a *uint256.Int) {
+func (d *Builder) WriteBigUint(a *uint256.Int) {
 	d.WriteWord(a.Bytes())
 }
 
-func (d *Encoder) WriteAddress(a common.Address) {
+func (d *Builder) WriteAddress(a common.Address) {
 	d.WriteWord(a[:])
 }
 
-func (d *Encoder) WriteBigInt(ret *big.Int) {
+func (d *Builder) WriteBigInt(ret *big.Int) {
 	nr := new(big.Int).Set(ret)
 	if ret.Cmp(new(big.Int)) == -1 {
 		nr.Neg(nr)
@@ -63,7 +61,7 @@ func (d *Encoder) WriteBigInt(ret *big.Int) {
 	d.WriteWord(ret.Bytes())
 }
 
-func (d *Encoder) WriteBool(b bool) {
+func (d *Builder) WriteBool(b bool) {
 	if b == true {
 		d.WriteWord([]byte{0x1})
 		return
@@ -71,33 +69,33 @@ func (d *Encoder) WriteBool(b bool) {
 	d.WriteWord([]byte{0x0})
 }
 
-func (d *Encoder) WriteInt(i int) {
+func (d *Builder) WriteInt(i int) {
 	d.WriteBigInt(big.NewInt(int64(i)))
 }
 
-func (d *Encoder) WriteUint(i uint) {
+func (d *Builder) WriteUint(i uint) {
 	d.WriteBigUint(uint256.NewInt(uint64(i)))
 }
 
-func (d *Encoder) WriteUint8(i uint8) {
+func (d *Builder) WriteUint8(i uint8) {
 	d.WriteUint(uint(i))
 }
 
-func (d *Encoder) WriteUint16(i uint16) {
+func (d *Builder) WriteUint16(i uint16) {
 	d.WriteUint(uint(i))
 }
 
-func (d *Encoder) Finish() []byte {
+func (d *Builder) Finish() []byte {
 	return d.xs
 }
-func (d *Encoder) Reset() {
+func (d *Builder) Reset() {
 	d.xs = d.xs[:0]
 }
 
-func (d *Encoder) WriteDynamic(*Encoder) {
+func (d *Builder) WriteDynamic(*Builder) {
 	panic("not done")
 }
 
-func (d *Encoder) WriteString(string) {
+func (d *Builder) WriteString(string) {
 	panic("not done")
 }
