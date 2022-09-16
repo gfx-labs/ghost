@@ -98,7 +98,8 @@ func (d *Decoder) decodeTuple(t TypeName, st reflect.Value) (err error) {
 				}
 			}
 			argidx = argidx + 1
-			err := d.decode(TypeName(name), st.FieldByName(fld.Name))
+			tfld := st.FieldByName(fld.Name)
+			err := d.decode(TypeName(name), tfld)
 			if err != nil {
 				return err
 			}
@@ -119,8 +120,10 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		return dec.decodeTuple(t, target)
 	case t.IsSlice():
 		// is solidity array
-		if target.Kind() != reflect.Slice {
-			return fmt.Errorf("cannot decode array into non slice value")
+		switch target.Kind() {
+		case reflect.Slice:
+		default:
+			return fmt.Errorf("cannot decode %s into %v", t, target.Kind())
 		}
 		// read dynamic offset
 		cur, err2 := dec.ReadDynamic()
