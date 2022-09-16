@@ -3,6 +3,7 @@ package abi
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
@@ -145,13 +146,14 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		target.Set(ns)
 		return nil
 	case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):
-		var ui *uint256.Int
+		var ui *big.Int
 		var err error
 		if st[0] == 'u' {
-			ui, err = dec.ReadBigUint()
+			uib, err := dec.ReadBigUint()
 			if err != nil {
 				return err
 			}
+			ui = uib.ToBig()
 		} else {
 			ui, err = dec.ReadBigInt()
 			if err != nil {
@@ -161,7 +163,7 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		switch target.Kind() {
 		case reflect.Pointer:
 			if target.Type().AssignableTo(typeBigIntPtr) {
-				target.Set(reflect.ValueOf(ui.ToBig()))
+				target.Set(reflect.ValueOf(ui))
 				return nil
 			}
 			t2 := reflect.New(target.Type().Elem())
@@ -171,21 +173,28 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		}
 		switch target.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			target.SetInt(ui.ToBig().Int64())
+			target.SetInt(ui.Int64())
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			target.SetUint(ui.Uint64())
 		case reflect.Float64, reflect.Float32:
 			target.SetFloat(float64(ui.Uint64()))
 		case reflect.Struct:
 			if target.Type().AssignableTo(typeBigInt) {
-				target.Set(reflect.ValueOf(*ui.ToBig()))
+				target.Set(reflect.ValueOf(*ui))
 			}
 		case reflect.Slice:
 			switch target.Type().Elem().Kind() {
-			case reflect.Uint, reflect.Int, reflect.Uint64, reflect.Int64:
+			case reflect.Uint, reflect.Uint64:
 				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
-				for idx, v := range ui {
+				for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) {
 					ns.Index(idx).SetUint(uint64(v))
+				}
+				target.Set(ns)
+
+			case reflect.Int64, reflect.Int:
+				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
+				for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) {
+					ns.Index(idx).SetInt(int64(v))
 				}
 				target.Set(ns)
 			case reflect.Uint8, reflect.Int8:
@@ -199,14 +208,25 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 			}
 		case reflect.Array:
 			switch target.Type().Elem().Kind() {
-			case reflect.Uint, reflect.Int, reflect.Uint64, reflect.Int64:
-				for idx, v := range ui {
-					target.Index(idx).SetUint(uint64(v))
+			case reflect.Uint, reflect.Uint64:
+				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
+				for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) {
+					ns.Index(idx).SetUint(uint64(v))
 				}
+				target.Set(ns)
+
+			case reflect.Int64, reflect.Int:
+				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
+				for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) {
+					ns.Index(idx).SetInt(int64(v))
+				}
+				target.Set(ns)
 			case reflect.Uint8, reflect.Int8:
-				for idx, v := range ui.Bytes32() {
-					target.Index(idx).SetUint(uint64(v))
+				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 32, 32)
+				for idx, v := range ui.Bytes() {
+					ns.Index(idx).SetUint(uint64(v))
 				}
+				target.Set(ns)
 			default:
 				return fmt.Errorf("could not array %v into %v", st, target.Type())
 			}

@@ -103,7 +103,7 @@ func (d *Decoder) ReadAddress() (common.Address, error) {
 	return ans, nil
 }
 
-func (d *Decoder) ReadBigInt() (*uint256.Int, error) {
+func (d *Decoder) ReadBigInt() (*big.Int, error) {
 	rt, err := d.ReadBigUint()
 	if err != nil {
 		return nil, err
@@ -114,8 +114,7 @@ func (d *Decoder) ReadBigInt() (*uint256.Int, error) {
 		ret.Add(ret, common.Big1)
 		ret.Neg(ret)
 	}
-	ans, _ := uint256.FromBig(ret)
-	return ans, nil
+	return ret, nil
 }
 
 func (d *Decoder) ReadBool() (bool, error) {
@@ -134,10 +133,10 @@ func (d *Decoder) ReadInt() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if !ans.ToBig().IsInt64() {
+	if !ans.IsInt64() {
 		return 0, errors.New("abi: int overflow")
 	}
-	return int(ans.ToBig().Int64()), nil
+	return int(ans.Int64()), nil
 }
 
 func (d *Decoder) ReadUint() (uint, error) {
