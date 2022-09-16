@@ -99,6 +99,8 @@ func (d *Decoder) decodeTuple(t TypeName, st reflect.Value) (err error) {
 			}
 			argidx = argidx + 1
 			tfld := st.FieldByName(fld.Name)
+			switch tfld.Kind() {
+			}
 			err := d.decode(TypeName(name), tfld)
 			if err != nil {
 				return err
@@ -157,16 +159,23 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 			}
 		}
 		switch target.Kind() {
+		case reflect.Pointer:
+			if target.Type().AssignableTo(typeBigIntPtr) {
+				target.Set(reflect.ValueOf(*ui.ToBig()))
+				return nil
+			}
+			t2 := reflect.New(target.Type().Elem())
+			target.Set(t2)
+			target = t2.Elem()
+		default:
+		}
+		switch target.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			target.SetInt(ui.ToBig().Int64())
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			target.SetUint(ui.Uint64())
 		case reflect.Float64, reflect.Float32:
 			target.SetFloat(float64(ui.Uint64()))
-		case reflect.Pointer:
-			if target.Type().AssignableTo(typeBigIntPtr) {
-				target.Set(reflect.ValueOf(ui.ToBig()))
-			}
 		case reflect.Struct:
 			if target.Type().AssignableTo(typeBigInt) {
 				target.Set(reflect.ValueOf(*ui.ToBig()))
