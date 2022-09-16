@@ -190,7 +190,6 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 					ns.Index(idx).SetUint(uint64(v))
 				}
 				target.Set(ns)
-
 			case reflect.Int64, reflect.Int:
 				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
 				for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) {
@@ -209,24 +208,17 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		case reflect.Array:
 			switch target.Type().Elem().Kind() {
 			case reflect.Uint, reflect.Uint64:
-				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
 				for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) {
-					ns.Index(idx).SetUint(uint64(v))
+					target.Index(idx).SetUint(uint64(v))
 				}
-				target.Set(ns)
-
 			case reflect.Int64, reflect.Int:
-				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
 				for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) {
-					ns.Index(idx).SetInt(int64(v))
+					target.Index(idx).SetInt(int64(v))
 				}
-				target.Set(ns)
 			case reflect.Uint8, reflect.Int8:
-				ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 32, 32)
 				for idx, v := range ui.Bytes() {
-					ns.Index(idx).SetUint(uint64(v))
+					target.Index(idx).SetUint(uint64(v))
 				}
-				target.Set(ns)
 			default:
 				return fmt.Errorf("could not array %v into %v", st, target.Type())
 			}
