@@ -8,12 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type ErigonClient interface {
 	ErigonFilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]ErigonLog, error)
-	EthGetBlockReceipts(ctx context.Context, number rpc.BlockNumber) ([]map[string])
 	Client
 }
 
@@ -21,7 +20,7 @@ type BlockReceipt struct {
 	BlockNumber uint64      `json:"blockNumber,omitempty"`
 	BlockHash   common.Hash `json:"blockHash,omitempty"`
 
-	TransactionHash            common.Hash     `json:"omitempty"`
+	TransactionHash common.Hash     `json:"omitempty"`
 	ContractAddress *common.Address `json:"contractAddress,omitempty"`
 
 	ChainID string `json:"chainId,omitempty"`
@@ -52,7 +51,7 @@ type BlockReceipt struct {
 	V     *hexutil.Big `json:"v,omitempty"`
 
 	LogsBloom hexutil.Bytes `json:"logsBloom,omitempty"`
-	Logs      []*Log        `json:"logs,omitempty"`
+	Logs      []*ErigonLog  `json:"logs,omitempty"`
 }
 
 type ErigonLog struct {

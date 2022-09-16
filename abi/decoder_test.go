@@ -49,22 +49,22 @@ func TestBasicExampleType(t *testing.T) {
 0000000000000000000000000000000000000000000000000000000000000001
 `)
 
-	var err error
-	type S struct {
-		One *big.Int `abi:"uint192"`
-		Two bool     `abi:"bool"`
-	}
-	var r S
+	One := &big.Int{}
+	var Two bool
 	//tup := TUPLE(INT32, BOOL)
-	err = dec.DecodeInto(&r)
+	err := dec.Decode(INT192, One)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.One.Int64() != 69 {
-		t.Errorf("expect %d got %d", 69, r.One)
+	err = dec.Decode(BOOL, &Two)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if r.Two != true {
-		t.Errorf("expect %v got %v", true, r.Two)
+	if One.Int64() != 69 {
+		t.Errorf("expect %d got %d", 69, One)
+	}
+	if Two != true {
+		t.Errorf("expect %v got %v", true, Two)
 	}
 }
 
