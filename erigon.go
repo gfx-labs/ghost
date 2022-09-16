@@ -8,11 +8,51 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type ErigonClient interface {
 	ErigonFilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]ErigonLog, error)
+	EthGetBlockReceipts(ctx context.Context, number rpc.BlockNumber) ([]map[string])
 	Client
+}
+
+type BlockReceipt struct {
+	BlockNumber uint64      `json:"blockNumber,omitempty"`
+	BlockHash   common.Hash `json:"blockHash,omitempty"`
+
+	TransactionHash            common.Hash     `json:"omitempty"`
+	ContractAddress *common.Address `json:"contractAddress,omitempty"`
+
+	ChainID string `json:"chainId,omitempty"`
+
+	From             common.Address   `json:"from,omitempty"`
+	To               common.Address   `json:"to,omitempty"`
+	Input            hexutil.Bytes    `json:"input,omitempty"`
+	TransactionIndex uint64           `json:"transactionIndex,omitempty"`
+	Value            hexutil.Big      `json:"value,omitempty"`
+	AccessList       types.AccessList `json:"accessList,omitempty"`
+
+	Status  string      `json:"status,omitempty"`
+	GasUsed hexutil.Big `json:"gasUsed,omitempty"`
+
+	Type uint64 `json:"type,omitempty"`
+
+	Gas                  uint64       `json:"gas,omitempty"`
+	GasPrice             *hexutil.Big `json:"gasPrice,omitempty"`
+	MaxFeePerGas         *hexutil.Big `json:"maxFeePerGas,omitempty"`
+	MaxPriorityFeePerGas *hexutil.Big `json:"maxPriorityFeePerGas,omitempty"`
+
+	CumulativeGasUsed hexutil.Big `json:"cumulativeGasUsed,omitempty"`
+	EffectiveGasPrice hexutil.Big `json:"effectiveGasPrice,omitempty"`
+
+	Nonce uint64       `json:"nonce,omitempty"`
+	R     *hexutil.Big `json:"r,omitempty"`
+	S     *hexutil.Big `json:"s,omitempty"`
+	V     *hexutil.Big `json:"v,omitempty"`
+
+	LogsBloom hexutil.Bytes `json:"logsBloom,omitempty"`
+	Logs      []*Log        `json:"logs,omitempty"`
 }
 
 type ErigonLog struct {

@@ -2,10 +2,17 @@ package abi
 
 import (
 	"encoding/hex"
+	"math/big"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
 )
+
+func TestThing(t *testing.T) {
+	_ = reflect.ValueOf(common.Address{})
+}
 
 func TestBasicExample(t *testing.T) {
 	dec := hexDecode(`
@@ -33,6 +40,110 @@ func TestBasicExample(t *testing.T) {
 	}
 	if r.y != true {
 		t.Errorf("expect %v got %v", true, r.y)
+	}
+}
+
+func TestBasicExampleType(t *testing.T) {
+	dec := hexDecode(`
+0000000000000000000000000000000000000000000000000000000000000045
+0000000000000000000000000000000000000000000000000000000000000001
+`)
+
+	var err error
+	type S struct {
+		One *big.Int `abi:"uint192"`
+		Two bool     `abi:"bool"`
+	}
+	var r S
+	//tup := TUPLE(INT32, BOOL)
+	err = dec.DecodeInto(&r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.One.Int64() != 69 {
+		t.Errorf("expect %d got %d", 69, r.One)
+	}
+	if r.Two != true {
+		t.Errorf("expect %v got %v", true, r.Two)
+	}
+}
+
+func TestDynamicExampleType(t *testing.T) {
+
+	dec := hexDecode(`
+0000000000000000000000000000000000000000000000000000000000000123
+0000000000000000000000000000000000000000000000000000000000000080
+3132333435363738393000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000e0
+0000000000000000000000000000000000000000000000000000000000000002
+0000000000000000000000000000000000000000000000000000000000000456
+0000000000000000000000000000000000000000000000000000000000000789
+000000000000000000000000000000000000000000000000000000000000000d
+48656c6c6f2c20776f726c642100000000000000000000000000000000000000
+	`)
+
+	type f struct {
+		A int    `abi:"int64"`
+		B []uint `abi:"uint64[]"`
+		C []byte `abi:"bytes10"`
+		D string `abi:"string"`
+	}
+
+	var r f
+	err := dec.DecodeInto(&r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(r.A, 0x123) {
+		t.Errorf("expect %v got %v", 0x123, r.A)
+	}
+	if !reflect.DeepEqual(r.B, []uint{0x456, 0x789}) {
+		t.Errorf("expect %v got %v", []uint{0x456, 0x789}, r.B)
+	}
+	if !(string(r.C) == "1234567890") {
+		t.Errorf("expect %v got %v", "1234567890", string(r.C))
+	}
+	if r.D != "Hello, world!" {
+		t.Errorf("expect %v got %v", "Hello, world!", string(r.D))
+	}
+}
+func TestDynamicAnonymousType(t *testing.T) {
+
+	dec := hexDecode(`
+0000000000000000000000000000000000000000000000000000000000000123
+0000000000000000000000000000000000000000000000000000000000000080
+3132333435363738393000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000e0
+0000000000000000000000000000000000000000000000000000000000000002
+0000000000000000000000000000000000000000000000000000000000000456
+0000000000000000000000000000000000000000000000000000000000000789
+000000000000000000000000000000000000000000000000000000000000000d
+48656c6c6f2c20776f726c642100000000000000000000000000000000000000
+	`)
+
+	type f struct {
+		A int
+		B []uint
+		C []byte
+		D string
+	}
+
+	var r f
+	err := dec.Decode(TUPLE(INT64, SLICE(UINT64), BYTES10, STRING), &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(r.A, 0x123) {
+		t.Errorf("expect %v got %v", 0x123, r.A)
+	}
+	if !reflect.DeepEqual(r.B, []uint{0x456, 0x789}) {
+		t.Errorf("expect %v got %v", []uint{0x456, 0x789}, r.B)
+	}
+	if !(string(r.C) == "1234567890") {
+		t.Errorf("expect %v got %v", "1234567890", string(r.C))
+	}
+	if r.D != "Hello, world!" {
+		t.Errorf("expect %v got %v", "Hello, world!", string(r.D))
 	}
 }
 

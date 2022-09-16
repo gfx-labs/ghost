@@ -1,7 +1,9 @@
 gfx.cafe/open/goutil v1.9.1 h1:bUt1/h+cLnCG+vCgl0HKujevapxXU0K0KftrGqNl5VQ=
 gfx.cafe/open/goutil v1.9.1/go.mod h1:z3c836Y8bbZq+G955r5HyINkprtLzNGq2PcZ3GpSvbU=
-gfx.cafe/open/jrpc v0.0.1 h1:VqkAsBmg6f9cutVnQeq8COw7hr24c0BpHcDZjzR9UyU=
-gfx.cafe/open/jrpc v0.0.1/go.mod h1:AKueH2xW6IFOIhkCDWEUVon6ETDe4WiZdE+5pNQE3YU=
+gfx.cafe/open/jrpc v0.0.8 h1:4UaolvuBMhMGeasOJa4au/A2j83DGPdEyiSDB4G+424=
+gfx.cafe/open/jrpc v0.0.8/go.mod h1:AKueH2xW6IFOIhkCDWEUVon6ETDe4WiZdE+5pNQE3YU=
+gfx.cafe/util/go/generic v0.0.0-20220913084821-017027846089 h1:SbWuhBWFTch/1S1f7G9kR7lNUHk4eZy0MP2+4sQgWrk=
+gfx.cafe/util/go/generic v0.0.0-20220913084821-017027846089/go.mod h1:WvSX4JsCRBuIXj0FRBFX9YLg+2SoL3w8Ww19uZO9yNE=
 git.tuxpa.in/a/zlog v1.32.0 h1:KKXbRF1x8kJDSzUoGz/pivo+4TVY6xT5sVtdFZ6traY=
 git.tuxpa.in/a/zlog v1.32.0/go.mod h1:vUa2Qhu6DLPLqmfRy99FiPqaY2eb6/KQjtMekW3UNnA=
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 h1:fLjPD/aNc3UIOA6tDi6QXUemppXK3P9BI7mr2hd6gx8=
@@ -66,6 +68,7 @@ github.com/hashicorp/go-bexpr v0.1.10 h1:9kuI5PFotCboP3dkDYFr/wi0gg0QVbSNz5oFRpx
 github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d h1:dg1dEPuWpEqDnvIw251EVy4zlP8gWbsGj4BsUKCRpYs=
 github.com/holiman/bloomfilter/v2 v2.0.3 h1:73e0e/V0tCydx14a0SCYS/EWCxgwLZ18CZcZKVu0fao=
 github.com/holiman/uint256 v1.2.0 h1:gpSYcPLWGv4sG43I2mVLiDZCNDh/EpGjSk8tmtxitHM=
+github.com/holiman/uint256 v1.2.0/go.mod h1:y4ga/t+u+Xwd7CpDgZESaRcWy0I7XMlTMA25ApIH5Jw=
 github.com/huin/goupnp v1.0.3 h1:N8No57ls+MnjlB+JPiCVSOyy/ot7MJTqlo7rn+NYSqQ=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=

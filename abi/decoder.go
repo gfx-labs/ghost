@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 var (
@@ -84,13 +85,13 @@ func (d *Decoder) Read(o []byte) (int, error) {
 	return n, nil
 }
 
-func (d *Decoder) ReadBigUint() (big.Int, error) {
+func (d *Decoder) ReadBigUint() (*uint256.Int, error) {
 	b, err := d.ReadWord()
 	if err != nil {
-		return big.Int{}, err
+		return nil, err
 	}
-	ret := new(big.Int).SetBytes(b[:])
-	return *ret, nil
+	ret := new(uint256.Int).SetBytes(b[:])
+	return ret, nil
 }
 
 func (d *Decoder) ReadAddress() (common.Address, error) {
@@ -102,18 +103,19 @@ func (d *Decoder) ReadAddress() (common.Address, error) {
 	return ans, nil
 }
 
-func (d *Decoder) ReadBigInt() (big.Int, error) {
+func (d *Decoder) ReadBigInt() (*uint256.Int, error) {
 	rt, err := d.ReadBigUint()
 	if err != nil {
-		return big.Int{}, err
+		return nil, err
 	}
-	ret := &rt
+	ret := rt.ToBig()
 	if ret.Bit(255) == 1 {
 		ret.Add(MaxUint256, new(big.Int).Neg(ret))
 		ret.Add(ret, common.Big1)
 		ret.Neg(ret)
 	}
-	return *ret, nil
+	ans, _ := uint256.FromBig(ret)
+	return ans, nil
 }
 
 func (d *Decoder) ReadBool() (bool, error) {
@@ -121,7 +123,7 @@ func (d *Decoder) ReadBool() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if ans.Cmp(big.NewInt(0)) == 0 {
+	if ans.Cmp(uint256.NewInt(0)) == 0 {
 		return false, nil
 	}
 	return true, nil
@@ -132,10 +134,10 @@ func (d *Decoder) ReadInt() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if !ans.IsInt64() {
+	if !ans.ToBig().IsInt64() {
 		return 0, errors.New("abi: int overflow")
 	}
-	return int(ans.Int64()), nil
+	return int(ans.ToBig().Int64()), nil
 }
 
 func (d *Decoder) ReadUint() (uint, error) {
@@ -181,4 +183,26 @@ func (d *Decoder) ReadDynamic() (*Decoder, error) {
 		return nil, errors.New("abi: dynamic overflow")
 	}
 	return NewDecoder(d.xs[actual:]), nil
+}
+
+func (d *Decoder) ReadString() (string, error) {
+	offset, err := d.ReadBigUint()
+	if err != nil {
+		return "", err
+	}
+	actual := int(offset.Uint64())
+	if len(d.xs) < actual {
+		return "", errors.New("abi: dynamic overflow")
+	}
+	dec := NewDecoder(d.xs[actual:])
+
+	l, err := dec.ReadUint()
+	if err != nil {
+		return "", err
+	}
+	bts, err := dec.ReadN(int(l))
+	if err != nil {
+		return "", err
+	}
+	return string(bts), nil
 }

@@ -5,7 +5,9 @@ go 1.18
 require (
 	gfx.cafe/open/goutil v1.9.1
 	gfx.cafe/open/jrpc v0.0.8
+	gfx.cafe/util/go/generic v0.0.0-20220913084821-017027846089
 	github.com/ethereum/go-ethereum v1.10.22
+	github.com/holiman/uint256 v1.2.0
 )
 
 require (
