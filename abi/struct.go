@@ -23,6 +23,7 @@ func (d *Decoder) DecodeInto(v any) (err error) {
 	if val.Kind() != reflect.Ptr {
 		return fmt.Errorf("abi: expected ptr type to decode into, but got '%v'", val.Kind())
 	}
+	//TODO: smartly pick the type to decode to based on the value of v
 	switch val.Elem().Kind() {
 	case reflect.Ptr:
 		return d.DecodeInto(val.Elem())
@@ -108,6 +109,8 @@ func (d *Decoder) decodeTuple(t TypeName, st reflect.Value) (err error) {
 	return nil
 }
 
+// TODO:
+// implement map, which should populate m[0], m[1]... etc
 // decode takes in a reflect.Value that points to the actual thing.
 func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 	st := (string)(t)
@@ -180,7 +183,7 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 				}
 				target.Set(ns)
 			default:
-				return fmt.Errorf("could not decode %v into %v", st, target.Type())
+				return fmt.Errorf("could not slice %v into %v", st, target.Type())
 			}
 		case reflect.Array:
 			switch target.Type().Elem().Kind() {
@@ -193,10 +196,10 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 					target.Index(idx).SetUint(uint64(v))
 				}
 			default:
-				return fmt.Errorf("could not decode %v into %v", st, target.Type())
+				return fmt.Errorf("could not array %v into %v", st, target.Type())
 			}
 		default:
-			return fmt.Errorf("could not decode %v into %v", st, target.Type())
+			return fmt.Errorf("could not decode %v into %v", target.Type(), target.Kind())
 		}
 		return nil
 	case t == ADDRESS:
