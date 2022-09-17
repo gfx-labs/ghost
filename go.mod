@@ -4,13 +4,14 @@ go 1.18
 
 require (
 	gfx.cafe/open/goutil v1.9.1
-	gfx.cafe/open/jrpc v0.0.13
+	gfx.cafe/open/jrpc v0.0.14
 	gfx.cafe/util/go/generic v0.0.0-20220913084821-017027846089
 	github.com/ethereum/go-ethereum v1.10.22
 	github.com/holiman/uint256 v1.2.0
 )
 
 require (
+	gfx.cafe/util/go/bufpool v0.0.0-20220917112702-95618babdf53 // indirect
 	git.tuxpa.in/a/zlog v1.32.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
