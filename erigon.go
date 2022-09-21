@@ -83,15 +83,6 @@ type ErigonLog struct {
 	Removed bool `json:"removed" codec:"-"`
 }
 
-var _ = (*erigonLogMarshaling)(nil)
-
-type erigonLogMarshaling struct {
-	Data        hexutil.Bytes
-	BlockNumber hexutil.Uint64
-	TxIndex     hexutil.Uint
-	Index       hexutil.Uint
-}
-
 // MarshalJSON marshals as JSON.
 func (l ErigonLog) MarshalJSON() ([]byte, error) {
 	type Log struct {
