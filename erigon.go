@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,6 +14,8 @@ import (
 
 type ErigonClient interface {
 	ErigonFilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]ErigonLog, error)
+	ErigonGetReceiptsByHash(ctx context.Context, txHash common.Hash) ([]ErigonReceipt, error)
+
 	Client
 }
 
@@ -162,6 +165,120 @@ func (l *ErigonLog) UnmarshalJSON(input []byte) error {
 	}
 	if dec.Removed != nil {
 		l.Removed = *dec.Removed
+	}
+	return nil
+}
+
+type ErigonReceipt struct {
+	// Consensus fields: These fields are defined by the Yellow Paper
+	Type              uint8          `json:"type,omitempty"`
+	PostState         []byte         `json:"root"`
+	Status            uint64         `json:"status"`
+	CumulativeGasUsed uint64         `json:"cumulativeGasUsed" gencodec:"required"`
+	Bloom             *hexutil.Bytes `json:"logsBloom"         gencodec:"required"`
+	Logs              []*types.Log   `json:"logs"              gencodec:"required"`
+
+	// Implementation fields: These fields are added by geth when processing a transaction.
+	// They are stored in the chain database.
+	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
+	ContractAddress common.Address `json:"contractAddress"`
+	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
+
+	// Inclusion information: These fields provide information about the inclusion of the
+	// transaction corresponding to this receipt.
+	BlockHash        common.Hash `json:"blockHash,omitempty"`
+	BlockNumber      *big.Int    `json:"blockNumber,omitempty"`
+	TransactionIndex uint        `json:"transactionIndex"`
+}
+
+// MarshalJSON marshals as JSON.
+func (r ErigonReceipt) MarshalJSON() ([]byte, error) {
+	type Receipt struct {
+		Type              hexutil.Uint64 `json:"type,omitempty"`
+		PostState         hexutil.Bytes  `json:"root"`
+		Status            hexutil.Uint64 `json:"status"`
+		CumulativeGasUsed hexutil.Uint64 `json:"cumulativeGasUsed" gencodec:"required"`
+		Bloom             *hexutil.Bytes `json:"logsBloom"         gencodec:"required"`
+		Logs              []*types.Log   `json:"logs"              gencodec:"required"`
+		TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
+		ContractAddress   common.Address `json:"contractAddress"`
+		GasUsed           hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
+		BlockHash         common.Hash    `json:"blockHash,omitempty"`
+		BlockNumber       *hexutil.Big   `json:"blockNumber,omitempty"`
+		TransactionIndex  hexutil.Uint   `json:"transactionIndex"`
+	}
+	var enc Receipt
+	enc.Type = hexutil.Uint64(r.Type)
+	enc.PostState = r.PostState
+	enc.Status = hexutil.Uint64(r.Status)
+	enc.CumulativeGasUsed = hexutil.Uint64(r.CumulativeGasUsed)
+	enc.Bloom = r.Bloom
+	enc.Logs = r.Logs
+	enc.TxHash = r.TxHash
+	enc.ContractAddress = r.ContractAddress
+	enc.GasUsed = hexutil.Uint64(r.GasUsed)
+	enc.BlockHash = r.BlockHash
+	enc.BlockNumber = (*hexutil.Big)(r.BlockNumber)
+	enc.TransactionIndex = hexutil.Uint(r.TransactionIndex)
+	return json.Marshal(&enc)
+}
+
+// UnmarshalJSON unmarshals from JSON.
+func (r *ErigonReceipt) UnmarshalJSON(input []byte) error {
+	type Receipt struct {
+		Type              *hexutil.Uint64 `json:"type,omitempty"`
+		PostState         *hexutil.Bytes  `json:"root"`
+		Status            *hexutil.Uint64 `json:"status"`
+		CumulativeGasUsed *hexutil.Uint64 `json:"cumulativeGasUsed" gencodec:"required"`
+		Bloom             hexutil.Bytes   `json:"logsBloom"         `
+		Logs              []*types.Log    `json:"logs"              `
+		TxHash            *common.Hash    `json:"transactionHash" gencodec:"required"`
+		ContractAddress   *common.Address `json:"contractAddress"`
+		GasUsed           *hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
+		BlockHash         *common.Hash    `json:"blockHash,omitempty"`
+		BlockNumber       *hexutil.Big    `json:"blockNumber,omitempty"`
+		TransactionIndex  *hexutil.Uint   `json:"transactionIndex"`
+	}
+	var dec Receipt
+	if err := json.Unmarshal(input, &dec); err != nil {
+		return err
+	}
+	if dec.Type != nil {
+		r.Type = uint8(*dec.Type)
+	}
+	if dec.PostState != nil {
+		r.PostState = *dec.PostState
+	}
+	if dec.Status != nil {
+		r.Status = uint64(*dec.Status)
+	}
+	if dec.CumulativeGasUsed == nil {
+		return errors.New("missing required field 'cumulativeGasUsed' for Receipt")
+	}
+	r.CumulativeGasUsed = uint64(*dec.CumulativeGasUsed)
+	if dec.Bloom != nil {
+		r.Bloom = &dec.Bloom
+	}
+	r.Logs = dec.Logs
+	if dec.TxHash == nil {
+		return errors.New("missing required field 'transactionHash' for Receipt")
+	}
+	r.TxHash = *dec.TxHash
+	if dec.ContractAddress != nil {
+		r.ContractAddress = *dec.ContractAddress
+	}
+	if dec.GasUsed == nil {
+		return errors.New("missing required field 'gasUsed' for Receipt")
+	}
+	r.GasUsed = uint64(*dec.GasUsed)
+	if dec.BlockHash != nil {
+		r.BlockHash = *dec.BlockHash
+	}
+	if dec.BlockNumber != nil {
+		r.BlockNumber = (*big.Int)(dec.BlockNumber)
+	}
+	if dec.TransactionIndex != nil {
+		r.TransactionIndex = uint(*dec.TransactionIndex)
 	}
 	return nil
 }

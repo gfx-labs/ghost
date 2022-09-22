@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"time"
 
@@ -273,6 +274,20 @@ func (ec *Client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 		setSenderFromServer(json.tx, *json.From, *json.BlockHash)
 	}
 	return json.tx, err
+}
+
+// TransactionReceipt returns the receipt of a transaction by transaction hash.
+// Note that the receipt is not available for pending transactions.
+func (ec *Client) ErigonGetReceiptsByHash(ctx context.Context, blockHash common.Hash) ([]ghost.ErigonReceipt, error) {
+	var r []ghost.ErigonReceipt
+	err := ec.c.CallContext(ctx, &r, "erigon_getReceiptsByHash", blockHash)
+	log.Println(r)
+	if err == nil {
+		if r == nil {
+			return nil, ethereum.NotFound
+		}
+	}
+	return r, err
 }
 
 // TransactionReceipt returns the receipt of a transaction by transaction hash.
