@@ -11,6 +11,10 @@ import (
 	"github.com/holiman/uint256"
 )
 
+type IntSet interface {
+	Set(*big.Int) *big.Int
+}
+
 func (d *Decoder) DecodeInto(v any) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -164,6 +168,10 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		case reflect.Pointer:
 			if target.Type().AssignableTo(typeBigIntPtr) {
 				target.Set(reflect.ValueOf(ui))
+				return nil
+			}
+			if ts, ok := target.Interface().(IntSet); ok {
+				ts.Set(ui)
 				return nil
 			}
 			t2 := reflect.New(target.Type().Elem())
