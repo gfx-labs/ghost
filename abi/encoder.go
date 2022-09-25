@@ -14,10 +14,12 @@ type Builder struct {
 	args [][2][]byte
 
 	dsz int
+
+	prefix []byte
 }
 
-func NewBuilder() *Builder {
-	return &Builder{}
+func NewBuilder(xs []byte) *Builder {
+	return &Builder{prefix: xs}
 }
 
 func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
@@ -94,10 +96,8 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 
 func (d *Builder) Finish() []byte {
 	out := make([]byte, 0, 32*len(d.args)+d.dsz)
+	out = append(out, d.prefix...)
 	free := len(d.args) * 32
-	if d.parent != nil {
-		free = free - 32
-	}
 	for _, v := range d.args {
 		if len(v[0]) == 0 {
 			b32 := uint256.NewInt(uint64(free)).Bytes32()
@@ -113,13 +113,15 @@ func (d *Builder) Finish() []byte {
 	d.args = d.args[:0]
 	return out
 }
+
 func (d *Builder) Reset() {
 	d.args = d.args[:0]
 }
 
 func (d *Builder) EnterDynamic(l int) *Builder {
 	b := &Builder{parent: d}
-	b.WriteInt(l)
+	b32 := uint256.NewInt(uint64(l)).Bytes32()
+	b.prefix = b32[:]
 	return b
 }
 func (d *Builder) ExitDynamic() *Builder {

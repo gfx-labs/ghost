@@ -6,7 +6,7 @@ import (
 )
 
 func TestEncodeSimple(t *testing.T) {
-	b := NewBuilder()
+	b := NewBuilder(nil)
 	b.WriteInt(1001)
 	b.WriteInt(1234)
 	b.WriteInt(1555)
@@ -15,7 +15,7 @@ func TestEncodeSimple(t *testing.T) {
 }
 
 func TestEncodeDynamic(t *testing.T) {
-	b := NewBuilder()
+	b := NewBuilder(nil)
 	ans := b.
 		EnterDynamic(2).
 		WriteInt(123).WriteInt(123).
@@ -25,7 +25,7 @@ func TestEncodeDynamic(t *testing.T) {
 	log.Println(PrettyHex(ans))
 }
 func TestEncodeDynamicComplex(t *testing.T) {
-	b := NewBuilder()
+	b := NewBuilder(nil)
 	ans := b.
 		EnterDynamic(2).
 		EnterDynamic(2).WriteInt(1).WriteInt(2).ExitDynamic().
@@ -39,7 +39,7 @@ func TestEncodeDynamicComplex(t *testing.T) {
 }
 
 func TestEncodeString(t *testing.T) {
-	b := NewBuilder()
+	b := NewBuilder(nil)
 	ans := b.
 		WriteString("hello!").
 		WriteInt(4414).
@@ -48,7 +48,7 @@ func TestEncodeString(t *testing.T) {
 }
 
 func TestEncodeLongString(t *testing.T) {
-	b := NewBuilder()
+	b := NewBuilder(nil)
 	ans := b.
 		WriteString("hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello!  ").
 		WriteInt(4414).
@@ -57,7 +57,7 @@ func TestEncodeLongString(t *testing.T) {
 }
 
 func TestEncodeNestedDynamic(t *testing.T) {
-	b := NewBuilder()
+	b := NewBuilder(nil)
 	ans := b.
 		EnterDynamic(4).
 		WriteString("hello!").
