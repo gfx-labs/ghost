@@ -120,8 +120,10 @@ func (d *Builder) Reset() {
 
 func (d *Builder) EnterDynamic(l int) *Builder {
 	b := &Builder{parent: d}
-	b32 := uint256.NewInt(uint64(l)).Bytes32()
-	b.prefix = b32[:]
+	if l > 0 {
+		b32 := uint256.NewInt(uint64(l)).Bytes32()
+		b.prefix = b32[:]
+	}
 	return b
 }
 func (d *Builder) ExitDynamic() *Builder {
