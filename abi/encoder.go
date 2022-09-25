@@ -8,19 +8,16 @@ import (
 )
 
 type Builder struct {
-	xs  []byte
-	cur int
+	parent *Builder
+
+	cur  int
+	args [][2][]byte
+
+	dsz int
 }
 
-func NewBuilder(xs []byte) *Builder {
-	return &Builder{
-		xs: xs,
-	}
-}
-
-func (d *Builder) Write(o []byte) *Builder {
-	d.xs = append(d.xs, o...)
-	return d
+func NewBuilder() *Builder {
+	return &Builder{}
 }
 
 func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
@@ -29,7 +26,7 @@ func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
 		diff = 0
 	}
 	o := append(xs, make([]byte, diff)...)
-	d.Write(o[:])
+	d.args = append(d.args, [2][]byte{o, nil})
 	return d
 }
 func (d *Builder) WriteWord(xs []byte) {
@@ -38,7 +35,7 @@ func (d *Builder) WriteWord(xs []byte) {
 		diff = 0
 	}
 	o := append(make([]byte, diff), xs...)
-	d.Write(o[:])
+	d.args = append(d.args, [2][]byte{o, nil})
 	return
 }
 
@@ -96,19 +93,58 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 }
 
 func (d *Builder) Finish() []byte {
-	return d.xs
+	out := make([]byte, 0, 32*len(d.args)+d.dsz)
+	free := len(d.args) * 32
+	if d.parent != nil {
+		free = free - 32
+	}
+	for _, v := range d.args {
+		if len(v[0]) == 0 {
+			b32 := uint256.NewInt(uint64(free)).Bytes32()
+			out = append(out, b32[:]...)
+		} else {
+			out = append(out, v[0]...)
+		}
+		free = free + len(v[1])
+	}
+	for _, v := range d.args {
+		out = append(out, v[1]...)
+	}
+	d.args = d.args[:0]
+	return out
 }
 func (d *Builder) Reset() {
-	d.xs = d.xs[:0]
+	d.args = d.args[:0]
 }
 
-func (d *Builder) StartDynamic(*Builder) *Builder {
-	panic("not done")
+func (d *Builder) EnterDynamic(l int) *Builder {
+	b := &Builder{parent: d}
+	b.WriteInt(l)
+	return b
 }
-func (d *Builder) FinishDynamic(*Builder) *Builder {
-	panic("not done")
+func (d *Builder) ExitDynamic() *Builder {
+	if d.parent == nil {
+		panic("tried to exit dynamic when not in one")
+	}
+	bts := d.Finish()
+	d.parent.args = append(d.parent.args, [2][]byte{nil, bts})
+	d.dsz = d.dsz + len(bts)
+	return d.parent
 }
 
-func (d *Builder) WriteString(string) *Builder {
-	panic("not done")
+func (d *Builder) WriteString(s string) *Builder {
+	dy := d.EnterDynamic(len(s))
+	cur := 0
+	for {
+		if cur+32 >= len(s) {
+			if len(s[cur:]) > 0 {
+				dy.WriteNPadRight32([]byte(s[cur:]))
+			}
+			break
+		} else {
+			dy.WriteWord([]byte(s[cur:(cur + 32)]))
+			cur = cur + 32
+		}
+	}
+	return dy.ExitDynamic()
 }
