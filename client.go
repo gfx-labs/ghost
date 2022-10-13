@@ -34,8 +34,6 @@ type Client interface {
 	PendingTransactionCount(ctx context.Context) (uint, error)
 	SendTransaction(ctx context.Context, tx *types.Transaction) error
 	StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error)
-	SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error)
-	SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (ethereum.Subscription, error)
 	SuggestGasPrice(ctx context.Context) (*big.Int, error)
 	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 	SyncProgress(ctx context.Context) (*ethereum.SyncProgress, error)
