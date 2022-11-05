@@ -22,6 +22,7 @@ func padRight32(xs []byte) []byte {
 	}
 	return rightPadBytes(xs, pl)
 }
+
 func padLeft32(xs []byte) []byte {
 	pl := 32 * (len(xs) / 32)
 	if pl == 0 {
@@ -71,6 +72,7 @@ type memory struct {
 	cur int
 
 	heap [][]byte
+
 	// current heap size
 	hz int
 }
@@ -118,18 +120,22 @@ func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
 	d.m.WriteStack(padRight32(xs))
 	return d
 }
+
 func (d *Builder) WriteWord(xs []byte) {
 	d.m.WriteStack(padLeft32(xs))
 	return
 }
+
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
 	return d
 }
+
 func (d *Builder) WriteAddress(a common.Address) *Builder {
 	d.WriteWord(a[:])
 	return d
 }
+
 func (d *Builder) WriteBigInt(ret *big.Int) *Builder {
 	nr := new(big.Int).Set(ret)
 	if ret.Cmp(new(big.Int)) == -1 {
@@ -200,6 +206,7 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 	b.WriteInt(l)
 	return b
 }
+
 func (d *Builder) ExitDynamic() *Builder {
 	if d.parent == nil {
 		panic("tried to exit dynamic when not in one")
