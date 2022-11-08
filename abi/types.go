@@ -17,6 +17,30 @@ type Signature string
 func SIG(s string, t ...TypeName) Signature {
 	return Signature(s + string(TUPLE(t...)))
 }
+func (s Signature) Method() string {
+	ans := new(strings.Builder)
+	for _, v := range s {
+		if v == '(' {
+			break
+		}
+		ans.WriteRune(v)
+	}
+	return ans.String()
+}
+
+func (s Signature) Args() TypeName {
+	ans := new(strings.Builder)
+	state := 0
+	for _, v := range s {
+		if v == '(' {
+			state = 1
+		}
+		if state == 1 {
+			ans.WriteRune(v)
+		}
+	}
+	return TypeName(ans.String())
+}
 
 func (s Signature) Hash() common.Hash {
 	if have, ok := sigCache.Load(string(s)); ok {
