@@ -1,7 +1,6 @@
 package abi
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -120,7 +119,6 @@ func TestEncodeNestedDynamic(t *testing.T) {
 		ExitDynamic().
 		WriteInt(4414).
 		Finish()
-	log.Println(PrettyHex(ans))
 
 	assert.Equal(t, PrettyHex(ans), `
 0000000000000000000000000000000000000000000000000000000000000040
