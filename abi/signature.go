@@ -12,6 +12,34 @@ var sigCache generic.Map[string, common.Hash]
 
 type Call string
 
+func decodeCall(c string) (Signature, []string) {
+	sigB := new(strings.Builder)
+	if len(c) < 3 {
+		return "", nil
+	}
+	methodIdx := strings.IndexByte(c, '(')
+	sigB.WriteString(c[:methodIdx])
+	sigB.WriteRune('(')
+	out := make([]string, 0, 4)
+	cutset := c[methodIdx+1 : len(c)-1]
+	for idx, v := range strings.Split(cutset, ",") {
+		if idx > 0 {
+			sigB.WriteRune(',')
+		}
+		v = strings.TrimSpace(v)
+		o := strings.SplitN(v, " ", 2)
+		sigB.WriteString(strings.TrimSpace(o[0]))
+		if len(o) > 1 {
+			out = append(out, strings.TrimSpace(o[1]))
+		}
+	}
+	sigB.WriteRune(')')
+	return Signature(sigB.String()), out
+}
+func (c Call) Decode() (Signature, []string) {
+	return decodeCall(string(c))
+}
+
 // represents the string that is hashed for things like function signature and event signatures
 type Signature string
 
