@@ -19,7 +19,7 @@ func (t TypeName) IsSimple() bool {
 }
 
 func (t TypeName) TupleArgs() []TypeName {
-	out := make([]TypeName, 0, 4)
+	out := make([]TypeName, 0, 16)
 	str := strings.NewReader(string(t))
 	var cur strings.Builder
 	str.ReadRune()
