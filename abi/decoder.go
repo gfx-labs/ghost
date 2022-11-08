@@ -194,7 +194,6 @@ func (d *Decoder) ReadString() (string, error) {
 		return "", errors.New("abi: dynamic overflow")
 	}
 	dec := NewDecoder(d.xs[actual:])
-
 	l, err := dec.ReadUint()
 	if err != nil {
 		return "", err
