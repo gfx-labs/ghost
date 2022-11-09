@@ -1,6 +1,7 @@
 package abi
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -30,10 +31,11 @@ func pad(data []byte, right bool) []byte {
 }
 
 type Builder struct {
-	parent *Builder
-	loc    int     // where this starts in the global scope of the encoding
-	len    int     // length of segment in bytes
-	m      *memory // the encoding of the segment
+	parent   *Builder
+	len      int    // # of elements for dynamic
+	loc      int    // starting pt in the parent builder
+	m        memory // the encoding of the segment
+	children []*Builder
 }
 
 type memory struct {
@@ -41,13 +43,18 @@ type memory struct {
 	cur     int    // current pointer (bytes)
 }
 
-func (m *memory) WriteStatic(data []byte) {
-	// growing the slice
-	new := make([]byte, len(m.encoded)+len(data))
-	copy(new, m.encoded[:m.cur])
-	copy(new[m.cur+1:], data)
-	copy(new[m.cur+len(data):], m.encoded[m.cur:])
-	m.encoded = new
+func (m *memory) WriteStatic(loc int, data []byte) {
+	var s []byte
+	if m.cur == 0 {
+		s = data
+	} else {
+		s = append(m.encoded[:m.cur], data...)
+	}
+	if m.cur == len(m.encoded) {
+		m.encoded = s
+	} else {
+		m.encoded = append(s, m.encoded[m.cur+1:]...)
+	}
 	m.cur += len(data)
 }
 
@@ -56,17 +63,19 @@ func (m *memory) WriteDynamic(data []byte) {
 }
 
 func (d *Builder) WriteWord(xs []byte) {
-	d.m.WriteStatic(pad(xs, false))
+	d.m.WriteStatic(d.m.cur, pad(xs, false))
 	return
 }
 
-func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
-	d.m.WriteStatic(pad(xs, true))
-	return d
+// wrinting a dynamic segment's byte location/offset
+func (d *Builder) WriteLoc(loc int, i int) {
+	b := big.NewInt(int64(i)).Bytes()
+	d.m.WriteStatic(loc, pad(b, false))
 }
 
-func (d *Builder) Finish() []byte {
-	return d.m.encoded
+func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
+	d.m.WriteStatic(d.m.cur, pad(xs, true))
+	return d
 }
 
 // *************************	WRITING SPECIFIC DATA TYPES
@@ -123,12 +132,12 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 	return d
 }
 
-// l = length of dynamic element
 func (d *Builder) EnterDynamic(l int) *Builder {
 	b := &Builder{
 		parent: d,
-		len:    l,
+		loc:    d.m.cur,
 	}
+	d.children = append(d.children, b)
 	b.WriteInt(l)
 	return b
 }
@@ -137,7 +146,6 @@ func (d *Builder) ExitDynamic() *Builder {
 	if d.parent == nil {
 		panic("tried to exit dynamic when not in one")
 	}
-
 	d.parent.m.WriteDynamic(d.m.encoded)
 	return d.parent
 }
@@ -157,4 +165,24 @@ func (d *Builder) WriteString(s string) *Builder {
 		}
 	}
 	return dy.ExitDynamic()
+}
+
+func (d *Builder) writeChild() {
+	if d.children != nil {
+		for _, c := range d.children {
+			c.writeChild()
+		}
+	} else {
+		if d.parent == nil {
+			return
+		}
+		fmt.Println(d.loc)
+		fmt.Println(d.parent.m.cur)
+		d.parent.WriteLoc(d.loc, d.parent.m.cur)
+	}
+}
+
+func (d *Builder) Finish() []byte {
+	d.writeChild()
+	return d.m.encoded
 }

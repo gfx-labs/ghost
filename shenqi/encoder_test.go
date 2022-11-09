@@ -8,7 +8,9 @@ import (
 )
 
 func TestEncodePadding(t *testing.T) {
-	pad([]byte{1, 2, 3}, false)
+	s := pad([]byte{1, 2, 3}, false)
+	assert.Equal(t, PrettyHex(s), `
+0000000000000000000000000000000000000000000000000000000000010203`)
 }
 
 func TestEncodeSimple(t *testing.T) {
@@ -18,6 +20,7 @@ func TestEncodeSimple(t *testing.T) {
 	b.WriteInt(1234)
 	b.WriteInt(1555)
 	ans := b.Finish()
+
 	assert.Equal(t, PrettyHex(ans), `
 00000000000000000000000000000000000000000000000000000000000003e9
 0000000000000000000000000000000000000000000000000000000000000000
