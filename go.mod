@@ -10,8 +10,11 @@ require (
 	github.com/holiman/uint256 v1.2.1
 	github.com/jawher/mow.cli v1.2.0
 	github.com/stretchr/testify v1.8.0
+<<<<<<< HEAD
 	github.com/urfave/cli/v2 v2.10.2
 	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a
+=======
+>>>>>>> 6648de5 (go mod)
 )
 
 require (
