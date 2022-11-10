@@ -14,8 +14,24 @@ func (t TypeName) IsSlice() bool {
 func (t TypeName) IsTuple() bool {
 	return strings.HasPrefix(string(t), "(")
 }
+
 func (t TypeName) IsSimple() bool {
 	return (!t.IsSlice()) && (!t.IsTuple())
+}
+
+func (t TypeName) IsNumber() bool {
+	st := string(t)
+	switch {
+	case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):
+		return true
+	}
+	return false
+}
+func (t TypeName) IsUnsigned() bool {
+	if len(t) == 0 {
+		return false
+	}
+	return t[0] == 'u'
 }
 
 func (t TypeName) TupleArgs() []TypeName {
@@ -31,7 +47,7 @@ func (t TypeName) TupleArgs() []TypeName {
 		}
 		if state == 0 {
 			if r == ')' {
-				out = append(out, TypeName(cur.String()))
+				out = append(out, TypeName(strings.TrimSpace(cur.String())))
 				return out
 			}
 		}
@@ -44,7 +60,7 @@ func (t TypeName) TupleArgs() []TypeName {
 			}
 		}
 		if state == 0 && r == ',' {
-			out = append(out, TypeName(cur.String()))
+			out = append(out, TypeName(strings.TrimSpace(cur.String())))
 			cur.Reset()
 		} else {
 			cur.WriteRune(r)

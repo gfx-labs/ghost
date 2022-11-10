@@ -79,6 +79,10 @@ func (s Signature) Hash() common.Hash {
 	sigCache.Store(string(s), ans)
 	return ans
 }
+func (s Signature) SelectorB() []byte {
+	ss := s.Selector()
+	return ss[:]
+}
 
 func (s Signature) Selector() [4]byte {
 	h := s.Hash()
