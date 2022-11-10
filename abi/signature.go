@@ -31,6 +31,8 @@ func decodeCall(c string) (Signature, []string) {
 		sigB.WriteString(strings.TrimSpace(o[0]))
 		if len(o) > 1 {
 			out = append(out, strings.TrimSpace(o[1]))
+		} else {
+			out = append(out, "")
 		}
 	}
 	sigB.WriteRune(')')
