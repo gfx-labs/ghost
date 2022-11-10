@@ -1,6 +1,7 @@
 package abi
 
 import (
+	"log"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -123,6 +124,7 @@ func TestEncodeNestedDynamic(t *testing.T) {
 		Exit().
 		WriteInt(4414).
 		Finish()
+	log.Println(PrettyHex(ans))
 
 	assert.Equal(t, PrettyHex(ans), `
 0000000000000000000000000000000000000000000000000000000000000040
