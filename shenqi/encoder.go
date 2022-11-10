@@ -133,6 +133,10 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 	return b
 }
 
+func (d *Builder) Dynamic() *Builder {
+	return d.EnterDynamic(0)
+}
+
 func (d *Builder) ExitDynamic() *Builder {
 	if d.parent == nil {
 		panic("tried to exit dynamic when not in one")
