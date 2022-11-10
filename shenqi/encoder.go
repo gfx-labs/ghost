@@ -143,6 +143,10 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 	return c
 }
 
+func (d *Builder) Dynamic() *Builder {
+	return d.EnterDynamic(0)
+}
+
 func (d *Builder) ExitDynamic() *Builder {
 	if d.parent == nil {
 		panic("tried to exit dynamic when not in one")
@@ -175,6 +179,9 @@ func (d *Builder) writeChild() {
 	}
 
 	d.parent.WriteLoc(d.loc, d.parent.m.cur)
+	if d.len < 1 {
+		d.len = len(d.children)
+	}
 	d.parent.WriteInt(d.len)
 	d.parent.m.WriteDynamic(d.m.encoded)
 }
