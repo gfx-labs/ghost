@@ -1,7 +1,6 @@
 package abi
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -45,21 +44,22 @@ type memory struct {
 
 func (m *memory) WriteStatic(loc int, data []byte) {
 	var s []byte
-	if m.cur == 0 {
+	if loc == 0 {
 		s = data
 	} else {
-		s = append(m.encoded[:m.cur], data...)
+		s = append(m.encoded[:loc], data...)
 	}
-	if m.cur == len(m.encoded) {
+	if loc == len(m.encoded) {
 		m.encoded = s
 	} else {
-		m.encoded = append(s, m.encoded[m.cur+1:]...)
+		m.encoded = append(s, m.encoded[loc:]...)
 	}
 	m.cur += len(data)
 }
 
 func (m *memory) WriteDynamic(data []byte) {
 	m.encoded = append(m.encoded, data...)
+	m.cur += len(data)
 }
 
 func (d *Builder) WriteWord(xs []byte) {
@@ -69,8 +69,8 @@ func (d *Builder) WriteWord(xs []byte) {
 
 // wrinting a dynamic segment's byte location/offset
 func (d *Builder) WriteLoc(loc int, i int) {
-	b := big.NewInt(int64(i)).Bytes()
-	d.m.WriteStatic(loc, pad(b, false))
+	xs := big.NewInt(int64(i)).Bytes()
+	d.m.WriteStatic(loc, pad(xs, false))
 }
 
 func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
@@ -138,6 +138,7 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 		loc:    d.m.cur,
 	}
 	d.children = append(d.children, b)
+	//d.m.cur += lnlen // for the offset of this dynamic
 	b.WriteInt(l)
 	return b
 }
@@ -146,7 +147,9 @@ func (d *Builder) ExitDynamic() *Builder {
 	if d.parent == nil {
 		panic("tried to exit dynamic when not in one")
 	}
-	d.parent.m.WriteDynamic(d.m.encoded)
+	//fmt.Println(PrettyHex(d.parent.m.encoded))
+	//fmt.Println(PrettyHex(d.m.encoded))
+	//d.parent.m.WriteDynamic(d.m.encoded)
 	return d.parent
 }
 
@@ -167,22 +170,25 @@ func (d *Builder) WriteString(s string) *Builder {
 	return dy.ExitDynamic()
 }
 
-func (d *Builder) writeChild() {
+func (d *Builder) writeChild(offset int) {
+	//fmt.Println(offset)
+	//fmt.Println(PrettyHex(d.m.encoded))
 	if d.children != nil {
-		for _, c := range d.children {
-			c.writeChild()
+		for i, c := range d.children {
+			c.writeChild(i * lnlen)
 		}
-	} else {
-		if d.parent == nil {
-			return
-		}
-		fmt.Println(d.loc)
-		fmt.Println(d.parent.m.cur)
-		d.parent.WriteLoc(d.loc, d.parent.m.cur)
 	}
+
+	if d.parent == nil {
+		return
+	}
+
+	d.parent.WriteLoc(d.loc+offset, d.parent.m.cur+lnlen)
+	d.parent.m.WriteDynamic(d.m.encoded)
 }
 
 func (d *Builder) Finish() []byte {
-	d.writeChild()
+	d.writeChild(0)
+	//fmt.Println(PrettyHex(d.m.encoded))
 	return d.m.encoded
 }
