@@ -231,7 +231,6 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 }
 
 // *************************	WRITING SPECIFIC DATA TYPES
-
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
 	return d
