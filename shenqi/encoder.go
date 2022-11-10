@@ -17,10 +17,8 @@ var (
 const lnlen = 32 // line length
 
 func pad(data []byte, right bool) []byte {
-	l := lnlen * (len(data)/lnlen + 1) // ceiling
-	if l == 0 {                        // nil case
-		l = lnlen
-	}
+	l := lnlen * (len(data)/(lnlen+1) + 1) // ceiling
+
 	padding := make([]byte, l-len(data))
 	if right {
 		return append(data, padding...)
@@ -70,10 +68,10 @@ func (d *Builder) WriteWord(xs []byte) {
 // wrinting a dynamic segment's byte location/offset
 func (d *Builder) WriteLoc(loc int, i int) {
 	xs := big.NewInt(int64(i)).Bytes()
-	d.m.WriteStatic(loc, pad(xs, false))
+	copy(d.m.encoded[loc:loc+lnlen], pad(xs, false))
 }
 
-func (d *Builder) WriteNPadRight32(xs []byte) *Builder {
+func (d *Builder) WritePadRight(xs []byte) *Builder {
 	d.m.WriteStatic(d.m.cur, pad(xs, true))
 	return d
 }
@@ -133,49 +131,42 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 }
 
 func (d *Builder) EnterDynamic(l int) *Builder {
-	b := &Builder{
+	c := &Builder{
 		parent: d,
 		loc:    d.m.cur,
+		len:    l,
 	}
-	d.children = append(d.children, b)
-	//d.m.cur += lnlen // for the offset of this dynamic
-	b.WriteInt(l)
-	return b
+	d.children = append(d.children, c)
+	//d.WriteInt(0)
+	d.m.encoded = append(d.m.encoded, make([]byte, lnlen)...) // placeholder for line location
+	d.m.cur += lnlen
+	return c
 }
 
 func (d *Builder) ExitDynamic() *Builder {
 	if d.parent == nil {
 		panic("tried to exit dynamic when not in one")
 	}
-	//fmt.Println(PrettyHex(d.parent.m.encoded))
-	//fmt.Println(PrettyHex(d.m.encoded))
-	//d.parent.m.WriteDynamic(d.m.encoded)
 	return d.parent
 }
 
 func (d *Builder) WriteString(s string) *Builder {
 	dy := d.EnterDynamic(len(s))
 	cur := 0
-	for {
-		if cur+32 >= len(s) {
-			if len(s[cur:]) > 0 {
-				dy.WriteNPadRight32([]byte(s[cur:]))
-			}
-			break
-		} else {
-			dy.WriteWord([]byte(s[cur:(cur + 32)]))
-			cur = cur + 32
-		}
+	for cur+lnlen < len(s) {
+		dy.WriteWord([]byte(s[cur:(cur + 32)]))
+		cur += lnlen
+	}
+	if len(s[cur:]) > 0 {
+		dy.WritePadRight([]byte(s[cur:]))
 	}
 	return dy.ExitDynamic()
 }
 
-func (d *Builder) writeChild(offset int) {
-	//fmt.Println(offset)
-	//fmt.Println(PrettyHex(d.m.encoded))
+func (d *Builder) writeChild() {
 	if d.children != nil {
-		for i, c := range d.children {
-			c.writeChild(i * lnlen)
+		for _, c := range d.children {
+			c.writeChild()
 		}
 	}
 
@@ -183,12 +174,12 @@ func (d *Builder) writeChild(offset int) {
 		return
 	}
 
-	d.parent.WriteLoc(d.loc+offset, d.parent.m.cur+lnlen)
+	d.parent.WriteLoc(d.loc, d.parent.m.cur)
+	d.parent.WriteInt(d.len)
 	d.parent.m.WriteDynamic(d.m.encoded)
 }
 
 func (d *Builder) Finish() []byte {
-	d.writeChild(0)
-	//fmt.Println(PrettyHex(d.m.encoded))
+	d.writeChild()
 	return d.m.encoded
 }
