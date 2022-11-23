@@ -19,7 +19,10 @@ type Memory interface {
 	Put(loc int, data []byte)
 }
 
+<<<<<<< HEAD
 // default memory implementation
+=======
+>>>>>>> d408d1b (reformat)
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
@@ -230,6 +233,18 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 }
 
 // *************************	WRITING SPECIFIC DATA TYPES
+
+// generic builder writer methods
+func (d *Builder) WritePadRight(xs []byte) *Builder {
+	d.Mem().Put(-1, padright(xs))
+	return d
+}
+
+func (d *Builder) WriteWord(xs []byte) *Builder {
+	d.Mem().Put(-1, padleft(xs))
+	return d
+}
+
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
 	return d
