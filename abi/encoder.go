@@ -50,6 +50,7 @@ func (m *memory) Insert(loc int, data []byte) {
 	}
 	m.Pos(len(data))
 }
+*/
 
 // replaces data at the location
 func (m *memory) Put(loc int, data []byte) {
