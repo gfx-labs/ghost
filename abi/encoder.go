@@ -17,17 +17,6 @@ type Memory interface {
 	Put(loc int, data []byte)
 }
 
-type Builder struct {
-	NewMem func() Memory
-	parent *Builder
-	len    int // # of elements for dynamic
-	loc    int // starting pt in the parent builder
-
-	mm       Memory // the encoding of the segment
-	bm       memory
-	children []*Builder
-}
-
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
@@ -54,7 +43,19 @@ func (m *memory) grow(amt int) {
 	m.Pos(amt)
 }
 
-// get the memory object
+// *************************	BUILDER
+type Builder struct {
+	NewMem func() Memory
+	parent *Builder
+	len    int // # of elements for dynamic
+	loc    int // starting pt in the parent builder
+
+	mm       Memory // the encoding of the segment
+	bm       memory
+	children []*Builder
+}
+
+// get the memory object, uses default memory impl by default
 func (d *Builder) Mem() Memory {
 	if d.mm != nil {
 		if d.NewMem != nil {
@@ -63,17 +64,6 @@ func (d *Builder) Mem() Memory {
 		return d.mm
 	}
 	return &d.bm
-}
-
-// generic builder writer methods
-func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().Put(-1, padright(xs))
-	return d
-}
-
-func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().Put(-1, padleft(xs))
-	return d
 }
 
 // builder dynamic handling
@@ -92,10 +82,12 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 	return c
 }
 
+// enter dynamic element
 func (d *Builder) Dynamic() *Builder {
 	return d.EnterDynamic(-1)
 }
 
+// exit dynamic element
 func (d *Builder) ExitDynamic() *Builder {
 	if d.parent == nil {
 		panic("tried to exit dynamic when not in one")
@@ -126,6 +118,18 @@ func (d *Builder) Finish() []byte {
 }
 
 // *************************	WRITING SPECIFIC DATA TYPES
+
+// generic builder writer methods
+func (d *Builder) WritePadRight(xs []byte) *Builder {
+	d.Mem().Put(-1, padright(xs))
+	return d
+}
+
+func (d *Builder) WriteWord(xs []byte) *Builder {
+	d.Mem().Put(-1, padleft(xs))
+	return d
+}
+
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
 	return d
