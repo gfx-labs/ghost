@@ -222,14 +222,14 @@ func (d *Builder) WriteString(s string) *Builder {
 	return dy.ExitDynamic()
 }
 
-func (d *Builder) writeChild() {
+func (d *Builder) Finish() []byte {
 	if d.children != nil {
 		for _, c := range d.children {
-			c.writeChild()
+			c.Finish()
 		}
 	}
 	if d.parent == nil {
-		return
+		return d.Mem().Data()
 	}
 	d.parent.Mem().WriteLoc(d.loc, d.parent.Mem().Cur(0))
 	if d.len > 0 {
@@ -239,9 +239,10 @@ func (d *Builder) writeChild() {
 		d.parent.WriteInt(d.len)
 	}
 	d.parent.Mem().WriteHeap(d.Mem().Data())
-}
-
-func (d *Builder) Finish() []byte {
-	d.writeChild()
 	return d.Mem().Data()
 }
+
+//func (d *Builder) Finish() []byte {
+//	d.writeChild()
+//	return d.Mem().Data()
+//}
