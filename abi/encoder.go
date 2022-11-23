@@ -8,7 +8,6 @@ import (
 )
 
 const lnlen = 32 // line length
-<<<<<<< HEAD
 type Memory interface {
 	// returns the full data
 	Data() []byte
@@ -18,40 +17,6 @@ type Memory interface {
 	Insert(loc int, data []byte)
 	// replacing bytes at a location in memory, growing the slice if needed
 	Put(loc int, data []byte)
-=======
-func padleft(data []byte) []byte {
-	alloc := [32]byte{}
-	if len(data) == 0 {
-		return alloc[:]
-	}
-	l := len(data) % 32
-	if l == 0 {
-		return data
-	}
-	padding := alloc[l:]
-
-	return append(padding, data...)
-}
-func padright(data []byte) []byte {
-	alloc := [32]byte{}
-	if len(data) == 0 {
-		return alloc[:]
-	}
-	l := len(data) % 32
-	if l == 0 {
-		return data
-	}
-	padding := alloc[l:]
-	return append(data, padding...)
-}
-
-type Builder struct {
-	parent   *Builder
-	len      int    // # of elements for dynamic
-	loc      int    // starting pt in the parent builder
-	m        memory // the encoding of the segment
-	children []*Builder
->>>>>>> 2db176d (asodjasudh as)
 }
 
 type memory struct {
@@ -305,26 +270,7 @@ func (d *Builder) WriteFixedBytes(i int, s string) *Builder {
 	if i < len(s) {
 		panic("input length mismatch")
 	}
-<<<<<<< HEAD
 	return d.WritePadRight([]byte(s))
-=======
-	d.children = append(d.children, c)
-	//d.WriteInt(0)
-	d.m.encoded = append(d.m.encoded, make([]byte, lnlen)...) // placeholder for line location
-	d.m.cur += lnlen
-	return c
-}
-
-func (d *Builder) Dynamic() *Builder {
-	return d.EnterDynamic(-1)
-}
-
-func (d *Builder) ExitDynamic() *Builder {
-	if d.parent == nil {
-		panic("tried to exit dynamic when not in one")
-	}
-	return d.parent
->>>>>>> eca933f (fix for nawo)
 }
 
 func (d *Builder) WriteString(s string) *Builder {
@@ -340,33 +286,6 @@ func (d *Builder) WriteString(s string) *Builder {
 	return dy.Exit()
 }
 
-<<<<<<< HEAD
 func (d *Builder) WriteBytes(s string) *Builder {
 	return d.WriteString(s)
-=======
-func (d *Builder) writeChild() {
-	if d.children != nil {
-		for _, c := range d.children {
-			c.writeChild()
-		}
-	}
-
-	if d.parent == nil {
-		return
-	}
-
-	d.parent.WriteLoc(d.loc, d.parent.m.cur)
-	if d.len > 0 {
-		if d.len < 1 {
-			d.len = len(d.children)
-		}
-		d.parent.WriteInt(d.len)
-	}
-	d.parent.m.WriteDynamic(d.m.encoded)
-}
-
-func (d *Builder) Finish() []byte {
-	d.writeChild()
-	return d.m.encoded
->>>>>>> eca933f (fix for nawo)
 }
