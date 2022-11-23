@@ -45,17 +45,23 @@ type Builder struct {
 	children []*Builder
 }
 
+// default memory implementation
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
 }
 
 type Memory interface {
+	// returns the full data
 	Data() []byte
-	Cur(int) int
+	// increments the cursor by input, returns new cursor
+	Pos(int) int
 
+	// write static bytes to memoryu
 	WriteStatic(data []byte)
+	// write bytes to a location in memory
 	WriteLoc(loc int, i int)
+	// write to the heap
 	WriteHeap(data []byte)
 }
 
@@ -71,7 +77,7 @@ func (m *memory) WriteStatic(data []byte) {
 	} else {
 		m.encoded = append(s, m.encoded[m.cur:]...)
 	}
-	m.Cur(len(data))
+	m.Pos(len(data))
 }
 
 /*
@@ -87,13 +93,13 @@ func (m *memory) WriteStatic(data []byte) {
 	} else {
 		m.encoded = append(s, m.encoded[loc:]...)
 	}
-	m.Cur(len(data))
+	m.Pos(len(data))
 }
 */
 
 func (m *memory) WriteHeap(data []byte) {
 	m.encoded = append(m.encoded, data...)
-	m.Cur(len(data))
+	m.Pos(len(data))
 }
 
 func (d *Builder) WriteWord(xs []byte) *Builder {
@@ -104,7 +110,7 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 func (m *memory) Data() []byte {
 	return m.encoded
 }
-func (m *memory) Cur(i int) int {
+func (m *memory) Pos(i int) int {
 	m.cur = m.cur + i
 	return m.cur
 }
@@ -188,7 +194,7 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 func (d *Builder) EnterDynamic(l int) *Builder {
 	c := &Builder{
 		parent: d,
-		loc:    d.Mem().Cur(0),
+		loc:    d.Mem().Pos(0),
 		len:    l,
 		NewMem: d.NewMem,
 	}
@@ -233,7 +239,7 @@ func (d *Builder) Finish() []byte {
 	if d.parent == nil {
 		return d.Mem().Data()
 	}
-	d.parent.Mem().WriteLoc(d.loc, d.parent.Mem().Cur(0))
+	d.parent.Mem().WriteLoc(d.loc, d.parent.Mem().Pos(0))
 	if d.len > 0 {
 		if d.len < 1 {
 			d.len = len(d.children)
