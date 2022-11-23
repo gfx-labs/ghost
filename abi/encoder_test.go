@@ -7,7 +7,7 @@ import (
 )
 
 func TestEncodePadding(t *testing.T) {
-	s := pad([]byte{1, 2, 3}, false)
+	s := padleft([]byte{1, 2, 3})
 	assert.Equal(t, PrettyHex(s), `
 0000000000000000000000000000000000000000000000000000000000010203`)
 }
