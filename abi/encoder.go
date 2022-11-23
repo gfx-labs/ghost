@@ -8,6 +8,7 @@ import (
 )
 
 const lnlen = 32 // line length
+<<<<<<< HEAD
 type Memory interface {
 	// returns the full data
 	Data() []byte
@@ -17,6 +18,40 @@ type Memory interface {
 	Insert(loc int, data []byte)
 	// replacing bytes at a location in memory, growing the slice if needed
 	Put(loc int, data []byte)
+=======
+func padleft(data []byte) []byte {
+	alloc := [32]byte{}
+	if len(data) == 0 {
+		return alloc[:]
+	}
+	l := len(data) % 32
+	if l == 0 {
+		return data
+	}
+	padding := alloc[l:]
+
+	return append(padding, data...)
+}
+func padright(data []byte) []byte {
+	alloc := [32]byte{}
+	if len(data) == 0 {
+		return alloc[:]
+	}
+	l := len(data) % 32
+	if l == 0 {
+		return data
+	}
+	padding := alloc[l:]
+	return append(data, padding...)
+}
+
+type Builder struct {
+	parent   *Builder
+	len      int    // # of elements for dynamic
+	loc      int    // starting pt in the parent builder
+	m        memory // the encoding of the segment
+	children []*Builder
+>>>>>>> 2db176d (asodjasudh as)
 }
 
 type memory struct {
@@ -66,6 +101,7 @@ func (m *memory) grow(amt int) {
 	m.Pos(amt)
 }
 
+<<<<<<< HEAD
 // *************************	BUILDER
 type Builder struct {
 	NewMem   func() Memory
@@ -88,6 +124,17 @@ func (d *Builder) Mem() Memory {
 		return d.mm
 	}
 	return &d.bm
+=======
+func (d *Builder) WriteWord(xs []byte) {
+	d.m.WriteStatic(d.m.cur, padleft(xs))
+	return
+}
+
+// wrinting a dynamic segment's byte location/offset
+func (d *Builder) WriteLoc(loc int, i int) {
+	xs := uint256.NewInt(uint64(i)).Bytes()
+	copy(d.m.encoded[loc:loc+lnlen], padleft(xs))
+>>>>>>> 2db176d (asodjasudh as)
 }
 
 // l = 0 is variable length dynamic
