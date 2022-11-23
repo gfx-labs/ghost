@@ -101,7 +101,6 @@ func (m *memory) grow(amt int) {
 	m.Pos(amt)
 }
 
-<<<<<<< HEAD
 // *************************	BUILDER
 type Builder struct {
 	NewMem   func() Memory
@@ -124,17 +123,6 @@ func (d *Builder) Mem() Memory {
 		return d.mm
 	}
 	return &d.bm
-=======
-func (d *Builder) WriteWord(xs []byte) {
-	d.m.WriteStatic(d.m.cur, padleft(xs))
-	return
-}
-
-// wrinting a dynamic segment's byte location/offset
-func (d *Builder) WriteLoc(loc int, i int) {
-	xs := uint256.NewInt(uint64(i)).Bytes()
-	copy(d.m.encoded[loc:loc+lnlen], padleft(xs))
->>>>>>> 2db176d (asodjasudh as)
 }
 
 // l = 0 is variable length dynamic
@@ -317,7 +305,26 @@ func (d *Builder) WriteFixedBytes(i int, s string) *Builder {
 	if i < len(s) {
 		panic("input length mismatch")
 	}
+<<<<<<< HEAD
 	return d.WritePadRight([]byte(s))
+=======
+	d.children = append(d.children, c)
+	//d.WriteInt(0)
+	d.m.encoded = append(d.m.encoded, make([]byte, lnlen)...) // placeholder for line location
+	d.m.cur += lnlen
+	return c
+}
+
+func (d *Builder) Dynamic() *Builder {
+	return d.EnterDynamic(-1)
+}
+
+func (d *Builder) ExitDynamic() *Builder {
+	if d.parent == nil {
+		panic("tried to exit dynamic when not in one")
+	}
+	return d.parent
+>>>>>>> eca933f (fix for nawo)
 }
 
 func (d *Builder) WriteString(s string) *Builder {
@@ -333,6 +340,33 @@ func (d *Builder) WriteString(s string) *Builder {
 	return dy.Exit()
 }
 
+<<<<<<< HEAD
 func (d *Builder) WriteBytes(s string) *Builder {
 	return d.WriteString(s)
+=======
+func (d *Builder) writeChild() {
+	if d.children != nil {
+		for _, c := range d.children {
+			c.writeChild()
+		}
+	}
+
+	if d.parent == nil {
+		return
+	}
+
+	d.parent.WriteLoc(d.loc, d.parent.m.cur)
+	if d.len > 0 {
+		if d.len < 1 {
+			d.len = len(d.children)
+		}
+		d.parent.WriteInt(d.len)
+	}
+	d.parent.m.WriteDynamic(d.m.encoded)
+}
+
+func (d *Builder) Finish() []byte {
+	d.writeChild()
+	return d.m.encoded
+>>>>>>> eca933f (fix for nawo)
 }
