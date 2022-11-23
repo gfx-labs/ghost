@@ -8,30 +8,18 @@ import (
 )
 
 const lnlen = 32 // line length
-func padleft(data []byte) []byte {
-	alloc := [32]byte{}
-	if len(data) == 0 {
-		return alloc[:]
-	}
-	l := len(data) % 32
-	if l == 0 {
-		return data
-	}
-	padding := alloc[l:]
+type Memory interface {
+	// returns the full data
+	Data() []byte
+	// increments the cursor by input, returns new cursor
+	Pos(int) int
 
-	return append(padding, data...)
-}
-func padright(data []byte) []byte {
-	alloc := [32]byte{}
-	if len(data) == 0 {
-		return alloc[:]
-	}
-	l := len(data) % 32
-	if l == 0 {
-		return data
-	}
-	padding := alloc[l:]
-	return append(data, padding...)
+	// write static bytes to memoryu
+	WriteStatic(data []byte)
+	// write bytes to a location in memory
+	WriteLoc(loc int, i int)
+	// write to the heap
+	WriteHeap(data []byte)
 }
 
 type Builder struct {
@@ -51,20 +39,6 @@ type memory struct {
 	cur     int    // current pointer (bytes)
 }
 
-type Memory interface {
-	// returns the full data
-	Data() []byte
-	// increments the cursor by input, returns new cursor
-	Pos(int) int
-
-	// write static bytes to memoryu
-	WriteStatic(data []byte)
-	// write bytes to a location in memory
-	WriteLoc(loc int, i int)
-	// write to the heap
-	WriteHeap(data []byte)
-}
-
 func (m *memory) WriteStatic(data []byte) {
 	var s []byte
 	if m.cur == 0 {
@@ -80,31 +54,9 @@ func (m *memory) WriteStatic(data []byte) {
 	m.Pos(len(data))
 }
 
-/*
-func (m *memory) WriteStatic(data []byte) {
-	var s []byte
-	if loc == 0 {
-		s = data
-	} else {
-		s = append(m.encoded[:loc], data...)
-	}
-	if loc == len(m.encoded) {
-		m.encoded = s
-	} else {
-		m.encoded = append(s, m.encoded[loc:]...)
-	}
-	m.Pos(len(data))
-}
-*/
-
 func (m *memory) WriteHeap(data []byte) {
 	m.encoded = append(m.encoded, data...)
 	m.Pos(len(data))
-}
-
-func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().WriteStatic(padleft(xs))
-	return d
 }
 
 func (m *memory) Data() []byte {
@@ -121,11 +73,6 @@ func (m *memory) WriteLoc(loc int, i int) {
 	copy(m.encoded[loc:loc+lnlen], padleft(xs))
 }
 
-func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().WriteStatic(padright(xs))
-	return d
-}
-
 // get the memory object
 func (d *Builder) Mem() Memory {
 	if d.mm != nil {
@@ -135,6 +82,17 @@ func (d *Builder) Mem() Memory {
 		return d.mm
 	}
 	return &d.bm
+}
+
+// generic builder writer methods
+func (d *Builder) WritePadRight(xs []byte) *Builder {
+	d.Mem().WriteStatic(padright(xs))
+	return d
+}
+
+func (d *Builder) WriteWord(xs []byte) *Builder {
+	d.Mem().WriteStatic(padleft(xs))
+	return d
 }
 
 // *************************	WRITING SPECIFIC DATA TYPES
