@@ -211,14 +211,6 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 	return d
 }
 
-// get the memory object
-func (d *Builder) Mem() Memory {
-	if d.mm != nil {
-		return d.mm
-	}
-	return &d.bm
-}
-
 // *************************	WRITING SPECIFIC DATA TYPES
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
