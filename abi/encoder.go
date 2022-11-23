@@ -122,6 +122,27 @@ func (d *Builder) ExitDynamic() *Builder {
 	return d.parent
 }
 
+// finish closes all children, and returns the result slice
+func (d *Builder) Finish() []byte {
+	if d.children != nil {
+		for _, c := range d.children {
+			c.Finish()
+		}
+	}
+	if d.parent == nil {
+		return d.Mem().Data()
+	}
+	d.parent.Mem().WriteLoc(d.loc, d.parent.Mem().Pos(0))
+	if d.len > 0 {
+		if d.len < 1 {
+			d.len = len(d.children)
+		}
+		d.parent.WriteInt(d.len)
+	}
+	d.parent.Mem().WriteHeap(d.Mem().Data())
+	return d.Mem().Data()
+}
+
 // *************************	WRITING SPECIFIC DATA TYPES
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
@@ -187,26 +208,6 @@ func (d *Builder) WriteString(s string) *Builder {
 		dy.WritePadRight([]byte(s[cur:]))
 	}
 	return dy.ExitDynamic()
-}
-
-func (d *Builder) Finish() []byte {
-	if d.children != nil {
-		for _, c := range d.children {
-			c.Finish()
-		}
-	}
-	if d.parent == nil {
-		return d.Mem().Data()
-	}
-	d.parent.Mem().WriteLoc(d.loc, d.parent.Mem().Pos(0))
-	if d.len > 0 {
-		if d.len < 1 {
-			d.len = len(d.children)
-		}
-		d.parent.WriteInt(d.len)
-	}
-	d.parent.Mem().WriteHeap(d.Mem().Data())
-	return d.Mem().Data()
 }
 
 //func (d *Builder) Finish() []byte {
