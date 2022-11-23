@@ -193,8 +193,10 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 		NewMem: d.NewMem,
 	}
 	d.children = append(d.children, c)
-	wd := [32]byte{}
-	d.Mem().WriteStatic(wd[:])
+	if l > 0 {
+		wd := [32]byte{}
+		d.Mem().WriteStatic(wd[:])
+	}
 	return c
 }
 
