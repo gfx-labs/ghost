@@ -10,9 +10,15 @@ import (
 const lnlen = 32 // line length
 
 func pad(data []byte, right bool) []byte {
-	l := lnlen * (len(data)/(lnlen+1) + 1) // ceiling
-
-	padding := make([]byte, l-len(data))
+	alloc := [32]byte{}
+	if len(data) == 0 {
+		return alloc[:]
+	}
+	l := len(data) % 32
+	if l == 0 {
+		return data
+	}
+	padding := alloc[l:]
 	if right {
 		return append(data, padding...)
 	} else {
