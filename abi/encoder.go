@@ -35,6 +35,7 @@ func padright(data []byte) []byte {
 }
 
 type Builder struct {
+	NewMem func() Memory
 	parent *Builder
 	len    int // # of elements for dynamic
 	loc    int // starting pt in the parent builder
@@ -105,6 +106,9 @@ func (d *Builder) WritePadRight(xs []byte) *Builder {
 // get the memory object
 func (d *Builder) Mem() Memory {
 	if d.mm != nil {
+		if d.NewMem != nil {
+			d.mm = d.NewMem()
+		}
 		return d.mm
 	}
 	return &d.bm
@@ -169,6 +173,7 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 		parent: d,
 		loc:    d.Mem().Cur(0),
 		len:    l,
+		NewMem: d.NewMem,
 	}
 	d.children = append(d.children, c)
 	wd := [32]byte{}
