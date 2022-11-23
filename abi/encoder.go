@@ -19,6 +19,7 @@ type Memory interface {
 	Put(loc int, data []byte)
 }
 
+// default memory implementation
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
@@ -37,6 +38,16 @@ func (m *memory) Insert(loc int, data []byte) {
 	if loc == -1 {
 		loc = m.cur
 	}
+	if len(m.encoded) == m.cur {
+		m.encoded = s
+	} else {
+		m.encoded = append(s, m.encoded[m.cur:]...)
+	}
+	m.Pos(len(data))
+}
+
+/*
+func (m *memory) WriteStatic(data []byte) {
 	var s []byte
 	if loc == 0 {
 		s = data
