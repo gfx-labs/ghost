@@ -95,6 +95,33 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 	return d
 }
 
+// builder dynamic handling
+func (d *Builder) EnterDynamic(l int) *Builder {
+	c := &Builder{
+		parent: d,
+		loc:    d.Mem().Pos(0),
+		len:    l,
+		NewMem: d.NewMem,
+	}
+	d.children = append(d.children, c)
+	if l > 0 {
+		wd := [32]byte{}
+		d.Mem().WriteStatic(wd[:])
+	}
+	return c
+}
+
+func (d *Builder) Dynamic() *Builder {
+	return d.EnterDynamic(-1)
+}
+
+func (d *Builder) ExitDynamic() *Builder {
+	if d.parent == nil {
+		panic("tried to exit dynamic when not in one")
+	}
+	return d.parent
+}
+
 // *************************	WRITING SPECIFIC DATA TYPES
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
@@ -147,32 +174,6 @@ func (d *Builder) WriteUint8(i uint8) *Builder {
 func (d *Builder) WriteUint16(i uint16) *Builder {
 	d.WriteUint(uint(i))
 	return d
-}
-
-func (d *Builder) EnterDynamic(l int) *Builder {
-	c := &Builder{
-		parent: d,
-		loc:    d.Mem().Pos(0),
-		len:    l,
-		NewMem: d.NewMem,
-	}
-	d.children = append(d.children, c)
-	if l > 0 {
-		wd := [32]byte{}
-		d.Mem().WriteStatic(wd[:])
-	}
-	return c
-}
-
-func (d *Builder) Dynamic() *Builder {
-	return d.EnterDynamic(-1)
-}
-
-func (d *Builder) ExitDynamic() *Builder {
-	if d.parent == nil {
-		panic("tried to exit dynamic when not in one")
-	}
-	return d.parent
 }
 
 func (d *Builder) WriteString(s string) *Builder {
