@@ -112,6 +112,7 @@ func reflectAddress(t TypeName, addr common.Address, target reflect.Value) error
 	}
 	return nil
 }
+
 func reflectBool(t TypeName, bl bool, target reflect.Value) error {
 	switch target.Kind() {
 	case reflect.Bool:
@@ -170,6 +171,7 @@ func reflectDynamicBytes(t TypeName, str []byte, target reflect.Value) error {
 	target.SetBytes(str)
 	return nil
 }
+
 func reflectFixedBytes(t TypeName, addr []byte, target reflect.Value) error {
 
 	switch target.Kind() {
