@@ -60,7 +60,7 @@ func (d *Builder) WriteWord(xs []byte) {
 
 // wrinting a dynamic segment's byte location/offset
 func (d *Builder) WriteLoc(loc int, i int) {
-	xs := big.NewInt(int64(i)).Bytes()
+	xs := uint256.NewInt(uint64(i)).Bytes()
 	copy(d.m.encoded[loc:loc+lnlen], pad(xs, false))
 }
 
@@ -104,18 +104,18 @@ func (d *Builder) WriteBool(b bool) *Builder {
 }
 
 func (d *Builder) WriteInt(i int) *Builder {
-	d.WriteBigInt(big.NewInt(int64(i)))
-	return d
+	if i >= 0 {
+		return d.WriteUint(uint(i))
+	}
+	return d.WriteBigInt(big.NewInt(int64(i)))
 }
 
 func (d *Builder) WriteUint(i uint) *Builder {
-	d.WriteBigUint(uint256.NewInt(uint64(i)))
-	return d
+	return d.WriteBigUint(uint256.NewInt(uint64(i)))
 }
 
 func (d *Builder) WriteUint8(i uint8) *Builder {
-	d.WriteUint(uint(i))
-	return d
+	return d.WriteUint(uint(i))
 }
 
 func (d *Builder) WriteUint16(i uint16) *Builder {
