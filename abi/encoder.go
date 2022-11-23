@@ -13,27 +13,10 @@ type Memory interface {
 	Data() []byte
 	// increments the cursor by input, returns new cursor
 	Pos(int) int
-<<<<<<< HEAD
 	// insert bytes to a location in memory, appending if needed
 	Insert(loc int, data []byte)
 	// replacing bytes at a location in memory, growing the slice if needed
 	Put(loc int, data []byte)
-=======
-
-	// put bytes to a location in memory, appending if needed
-	Put(loc int, data []byte)
-}
-
-type Builder struct {
-	NewMem func() Memory
-	parent *Builder
-	len    int // # of elements for dynamic
-	loc    int // starting pt in the parent builder
-
-	mm       Memory // the encoding of the segment
-	bm       memory
-	children []*Builder
->>>>>>> 97cb68f (ok)
 }
 
 // default memory implementation
@@ -50,7 +33,6 @@ func (m *memory) Pos(i int) int {
 	return m.cur
 }
 
-<<<<<<< HEAD
 // inserts data at the location
 func (m *memory) Insert(loc int, data []byte) {
 	if loc == -1 {
@@ -68,28 +50,6 @@ func (m *memory) Insert(loc int, data []byte) {
 		m.encoded = append(s, m.encoded[loc:]...)
 	}
 	m.Pos(len(data))
-=======
-// write or replace whatever is at that location
-func (m *memory) Put(loc int, data []byte) {
-	if loc == -1 {
-		loc = m.cur
-	}
-	if loc+len(data) > len(m.encoded) {
-		m.grow(loc + len(data) - len(m.encoded))
-	}
-	copy(m.encoded[loc:loc+len(data)], data)
-}
-
-func (m *memory) grow(amt int) {
-	m.encoded = append(m.encoded, make([]byte, amt)...)
-	m.Pos(amt)
-}
-
-// wrinting a dynamic segment's byte location/offset
-func (m *memory) WriteLoc(loc int, i int) {
-	xs := uint256.NewInt(uint64(i)).Bytes32()
-	m.Put(loc, xs[:])
->>>>>>> 97cb68f (ok)
 }
 
 /*
@@ -148,27 +108,11 @@ func (d *Builder) Mem() Memory {
 	return &d.bm
 }
 
-<<<<<<< HEAD
 // l = 0 is variable length dynamic
 // l = -1 is tuple (static)
 // l > 0 is length specified array (dynamic elements)
 // l < 0 is length specified array (static elements)
 func (d *Builder) EnterGroup(l int, w bool) *Builder {
-=======
-// generic builder writer methods
-func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().Put(-1, padright(xs))
-	return d
-}
-
-func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().Put(-1, padleft(xs))
-	return d
-}
-
-// builder dynamic handling
-func (d *Builder) EnterDynamic(l int) *Builder {
->>>>>>> 97cb68f (ok)
 	c := &Builder{
 		parent: d,
 		loc:    d.Mem().Pos(0),
@@ -257,7 +201,6 @@ func (d *Builder) Finish() []byte {
 	if d.parent == nil {
 		return d.Mem().Data()
 	}
-<<<<<<< HEAD
 	if d.len == 0 {
 		d.len = len(d.Mem().Data())/lnlen + len(d.children) + d.rlen
 	}
@@ -272,17 +215,6 @@ func (d *Builder) Finish() []byte {
 	}
 	d.parent.Mem().Put(-1, d.Mem().Data())
 	d.parent.rlen = d.parent.rlen - len(d.Mem().Data())/lnlen
-=======
-	xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
-	d.parent.Mem().Put(d.loc, xs[:])
-	if d.len > 0 {
-		if d.len < 1 {
-			d.len = len(d.children)
-		}
-		d.parent.WriteInt(d.len)
-	}
-	d.parent.Mem().Put(-1, d.Mem().Data())
->>>>>>> 97cb68f (ok)
 	return d.Mem().Data()
 }
 
@@ -375,8 +307,3 @@ func (d *Builder) WriteString(s string) *Builder {
 func (d *Builder) WriteBytes(s string) *Builder {
 	return d.WriteString(s)
 }
-
-//func (d *Builder) Finish() []byte {
-//	d.writeChild()
-//	return d.Mem().Data()
-//}
