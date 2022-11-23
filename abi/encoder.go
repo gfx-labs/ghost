@@ -13,7 +13,6 @@ type Memory interface {
 	Data() []byte
 	// increments the cursor by input, returns new cursor
 	Pos(int) int
-
 	// put bytes to a location in memory, appending if needed
 	Put(loc int, data []byte)
 }
@@ -36,7 +35,7 @@ type memory struct {
 }
 
 func (m *memory) Data() []byte {
-	return m.encoded
+	return m.encoded[:m.cur]
 }
 func (m *memory) Pos(i int) int {
 	m.cur = m.cur + i
