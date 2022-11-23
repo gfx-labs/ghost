@@ -67,15 +67,21 @@ func (m *memory) WriteDynamic(data []byte) {
 	m.cur += len(data)
 }
 
-func (d *Builder) WriteWord(xs []byte) {
+func (d *Builder) WriteDynamic(xs []byte) *Builder {
+	d.m.WriteDynamic(xs)
+	return d
+}
+
+func (d *Builder) WriteWord(xs []byte) *Builder {
 	d.m.WriteStatic(d.m.cur, padleft(xs))
-	return
+	return d
 }
 
 // wrinting a dynamic segment's byte location/offset
-func (d *Builder) WriteLoc(loc int, i int) {
+func (d *Builder) WriteLoc(loc int, i int) *Builder {
 	xs := uint256.NewInt(uint64(i)).Bytes()
 	copy(d.m.encoded[loc:loc+lnlen], padleft(xs))
+	return d
 }
 
 func (d *Builder) WritePadRight(xs []byte) *Builder {
