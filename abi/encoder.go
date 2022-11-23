@@ -14,12 +14,8 @@ type Memory interface {
 	// increments the cursor by input, returns new cursor
 	Pos(int) int
 
-	// write static bytes to memoryu
-	WriteStatic(data []byte)
-	// write bytes to a location in memory
-	WriteLoc(loc int, i int)
-	// write to the heap
-	WriteHeap(data []byte)
+	// put bytes to a location in memory, appending if needed
+	Put(loc int, data []byte)
 }
 
 type Builder struct {
@@ -39,26 +35,6 @@ type memory struct {
 	cur     int    // current pointer (bytes)
 }
 
-func (m *memory) WriteStatic(data []byte) {
-	var s []byte
-	if m.cur == 0 {
-		s = data
-	} else {
-		s = append(m.encoded[:m.cur], data...)
-	}
-	if len(m.encoded) == m.cur {
-		m.encoded = s
-	} else {
-		m.encoded = append(s, m.encoded[m.cur:]...)
-	}
-	m.Pos(len(data))
-}
-
-func (m *memory) WriteHeap(data []byte) {
-	m.encoded = append(m.encoded, data...)
-	m.Pos(len(data))
-}
-
 func (m *memory) Data() []byte {
 	return m.encoded
 }
@@ -67,10 +43,26 @@ func (m *memory) Pos(i int) int {
 	return m.cur
 }
 
+// write or replace whatever is at that location
+func (m *memory) Put(loc int, data []byte) {
+	if loc == -1 {
+		loc = m.cur
+	}
+	if loc+len(data) > len(m.encoded) {
+		m.grow(loc + len(data) - len(m.encoded))
+	}
+	copy(m.encoded[loc:loc+len(data)], data)
+}
+
+func (m *memory) grow(amt int) {
+	m.encoded = append(m.encoded, make([]byte, amt)...)
+	m.Pos(amt)
+}
+
 // wrinting a dynamic segment's byte location/offset
 func (m *memory) WriteLoc(loc int, i int) {
-	xs := uint256.NewInt(uint64(i)).Bytes()
-	copy(m.encoded[loc:loc+lnlen], padleft(xs))
+	xs := uint256.NewInt(uint64(i)).Bytes32()
+	m.Put(loc, xs[:])
 }
 
 // get the memory object
@@ -86,12 +78,12 @@ func (d *Builder) Mem() Memory {
 
 // generic builder writer methods
 func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().WriteStatic(padright(xs))
+	d.Mem().Put(-1, padright(xs))
 	return d
 }
 
 func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().WriteStatic(padleft(xs))
+	d.Mem().Put(-1, padleft(xs))
 	return d
 }
 
@@ -106,7 +98,7 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 	d.children = append(d.children, c)
 	if l > 0 {
 		wd := [32]byte{}
-		d.Mem().WriteStatic(wd[:])
+		d.Mem().Put(-1, wd[:])
 	}
 	return c
 }
@@ -132,14 +124,15 @@ func (d *Builder) Finish() []byte {
 	if d.parent == nil {
 		return d.Mem().Data()
 	}
-	d.parent.Mem().WriteLoc(d.loc, d.parent.Mem().Pos(0))
+	xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
+	d.parent.Mem().Put(d.loc, xs[:])
 	if d.len > 0 {
 		if d.len < 1 {
 			d.len = len(d.children)
 		}
 		d.parent.WriteInt(d.len)
 	}
-	d.parent.Mem().WriteHeap(d.Mem().Data())
+	d.parent.Mem().Put(-1, d.Mem().Data())
 	return d.Mem().Data()
 }
 
