@@ -28,7 +28,6 @@ type Builder struct {
 	children []*Builder
 }
 
-// default memory implementation
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
@@ -41,8 +40,6 @@ func (m *memory) Pos(i int) int {
 	m.cur = m.cur + i
 	return m.cur
 }
-
-// write or replace whatever is at that location
 func (m *memory) Put(loc int, data []byte) {
 	if loc == -1 {
 		loc = m.cur
@@ -52,16 +49,9 @@ func (m *memory) Put(loc int, data []byte) {
 	}
 	copy(m.encoded[loc:loc+len(data)], data)
 }
-
 func (m *memory) grow(amt int) {
 	m.encoded = append(m.encoded, make([]byte, amt)...)
 	m.Pos(amt)
-}
-
-// wrinting a dynamic segment's byte location/offset
-func (m *memory) WriteLoc(loc int, i int) {
-	xs := uint256.NewInt(uint64(i)).Bytes32()
-	m.Put(loc, xs[:])
 }
 
 // get the memory object
