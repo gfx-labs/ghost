@@ -35,16 +35,27 @@ func padright(data []byte) []byte {
 }
 
 type Builder struct {
-	parent   *Builder
-	len      int    // # of elements for dynamic
-	loc      int    // starting pt in the parent builder
-	m        memory // the encoding of the segment
+	parent *Builder
+	len    int // # of elements for dynamic
+	loc    int // starting pt in the parent builder
+
+	mm       Memory // the encoding of the segment
+	bm       memory
 	children []*Builder
 }
 
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
+}
+
+type Memory interface {
+	Data() []byte
+	Cur(int) int
+
+	WriteStatic(loc int, data []byte)
+	WriteLoc(loc int, i int)
+	WriteHeap(data []byte)
 }
 
 func (m *memory) WriteStatic(loc int, data []byte) {
@@ -59,34 +70,44 @@ func (m *memory) WriteStatic(loc int, data []byte) {
 	} else {
 		m.encoded = append(s, m.encoded[loc:]...)
 	}
-	m.cur += len(data)
+	m.Cur(len(data))
 }
 
-func (m *memory) WriteDynamic(data []byte) {
+func (m *memory) WriteHeap(data []byte) {
 	m.encoded = append(m.encoded, data...)
-	m.cur += len(data)
-}
-
-func (d *Builder) WriteDynamic(xs []byte) *Builder {
-	d.m.WriteDynamic(xs)
-	return d
+	m.Cur(len(data))
 }
 
 func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.m.WriteStatic(d.m.cur, padleft(xs))
+	d.Mem().WriteStatic(d.Mem().Cur(0), padleft(xs))
 	return d
+}
+
+func (m *memory) Data() []byte {
+	return m.encoded
+}
+func (m *memory) Cur(i int) int {
+	m.cur = m.cur + i
+	return m.cur
 }
 
 // wrinting a dynamic segment's byte location/offset
-func (d *Builder) WriteLoc(loc int, i int) *Builder {
+func (m *memory) WriteLoc(loc int, i int) {
 	xs := uint256.NewInt(uint64(i)).Bytes()
-	copy(d.m.encoded[loc:loc+lnlen], padleft(xs))
-	return d
+	copy(m.encoded[loc:loc+lnlen], padleft(xs))
 }
 
 func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.m.WriteStatic(d.m.cur, padright(xs))
+	d.Mem().WriteStatic(d.Mem().Cur(0), padright(xs))
 	return d
+}
+
+// get the memory object
+func (d *Builder) Mem() Memory {
+	if d.mm != nil {
+		return d.mm
+	}
+	return &d.bm
 }
 
 // *************************	WRITING SPECIFIC DATA TYPES
@@ -146,13 +167,12 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 func (d *Builder) EnterDynamic(l int) *Builder {
 	c := &Builder{
 		parent: d,
-		loc:    d.m.cur,
+		loc:    d.Mem().Cur(0),
 		len:    l,
 	}
 	d.children = append(d.children, c)
-	//d.WriteInt(0)
-	d.m.encoded = append(d.m.encoded, make([]byte, lnlen)...) // placeholder for line location
-	d.m.cur += lnlen
+	wd := [32]byte{}
+	d.Mem().WriteStatic(d.Mem().Cur(0), wd[:])
 	return c
 }
 
@@ -186,22 +206,20 @@ func (d *Builder) writeChild() {
 			c.writeChild()
 		}
 	}
-
 	if d.parent == nil {
 		return
 	}
-
-	d.parent.WriteLoc(d.loc, d.parent.m.cur)
+	d.parent.Mem().WriteLoc(d.loc, d.parent.Mem().Cur(0))
 	if d.len > 0 {
 		if d.len < 1 {
 			d.len = len(d.children)
 		}
 		d.parent.WriteInt(d.len)
 	}
-	d.parent.m.WriteDynamic(d.m.encoded)
+	d.parent.Mem().WriteHeap(d.Mem().Data())
 }
 
 func (d *Builder) Finish() []byte {
 	d.writeChild()
-	return d.m.encoded
+	return d.Mem().Data()
 }
