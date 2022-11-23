@@ -8,8 +8,7 @@ import (
 )
 
 const lnlen = 32 // line length
-
-func pad(data []byte, right bool) []byte {
+func padleft(data []byte) []byte {
 	alloc := [32]byte{}
 	if len(data) == 0 {
 		return alloc[:]
@@ -19,11 +18,20 @@ func pad(data []byte, right bool) []byte {
 		return data
 	}
 	padding := alloc[l:]
-	if right {
-		return append(data, padding...)
-	} else {
-		return append(padding, data...)
+
+	return append(padding, data...)
+}
+func padright(data []byte) []byte {
+	alloc := [32]byte{}
+	if len(data) == 0 {
+		return alloc[:]
 	}
+	l := len(data) % 32
+	if l == 0 {
+		return data
+	}
+	padding := alloc[l:]
+	return append(data, padding...)
 }
 
 type Builder struct {
@@ -60,18 +68,18 @@ func (m *memory) WriteDynamic(data []byte) {
 }
 
 func (d *Builder) WriteWord(xs []byte) {
-	d.m.WriteStatic(d.m.cur, pad(xs, false))
+	d.m.WriteStatic(d.m.cur, padleft(xs))
 	return
 }
 
 // wrinting a dynamic segment's byte location/offset
 func (d *Builder) WriteLoc(loc int, i int) {
 	xs := uint256.NewInt(uint64(i)).Bytes()
-	copy(d.m.encoded[loc:loc+lnlen], pad(xs, false))
+	copy(d.m.encoded[loc:loc+lnlen], padleft(xs))
 }
 
 func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.m.WriteStatic(d.m.cur, pad(xs, true))
+	d.m.WriteStatic(d.m.cur, padright(xs))
 	return d
 }
 
