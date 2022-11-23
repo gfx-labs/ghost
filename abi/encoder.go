@@ -290,3 +290,8 @@ func (d *Builder) WriteString(s string) *Builder {
 func (d *Builder) WriteBytes(s string) *Builder {
 	return d.WriteString(s)
 }
+
+//func (d *Builder) Finish() []byte {
+//	d.writeChild()
+//	return d.Mem().Data()
+//}
