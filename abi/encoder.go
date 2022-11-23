@@ -54,12 +54,28 @@ type Memory interface {
 	Data() []byte
 	Cur(int) int
 
-	WriteStatic(loc int, data []byte)
+	WriteStatic(data []byte)
 	WriteLoc(loc int, i int)
 	WriteHeap(data []byte)
 }
 
-func (m *memory) WriteStatic(loc int, data []byte) {
+func (m *memory) WriteStatic(data []byte) {
+	var s []byte
+	if m.cur == 0 {
+		s = data
+	} else {
+		s = append(m.encoded[:m.cur], data...)
+	}
+	if len(m.encoded) == m.cur {
+		m.encoded = s
+	} else {
+		m.encoded = append(s, m.encoded[m.cur:]...)
+	}
+	m.Cur(len(data))
+}
+
+/*
+func (m *memory) WriteStatic(data []byte) {
 	var s []byte
 	if loc == 0 {
 		s = data
@@ -73,6 +89,7 @@ func (m *memory) WriteStatic(loc int, data []byte) {
 	}
 	m.Cur(len(data))
 }
+*/
 
 func (m *memory) WriteHeap(data []byte) {
 	m.encoded = append(m.encoded, data...)
@@ -80,7 +97,7 @@ func (m *memory) WriteHeap(data []byte) {
 }
 
 func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().WriteStatic(d.Mem().Cur(0), padleft(xs))
+	d.Mem().WriteStatic(padleft(xs))
 	return d
 }
 
@@ -99,7 +116,7 @@ func (m *memory) WriteLoc(loc int, i int) {
 }
 
 func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().WriteStatic(d.Mem().Cur(0), padright(xs))
+	d.Mem().WriteStatic(padright(xs))
 	return d
 }
 
@@ -177,7 +194,7 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 	}
 	d.children = append(d.children, c)
 	wd := [32]byte{}
-	d.Mem().WriteStatic(d.Mem().Cur(0), wd[:])
+	d.Mem().WriteStatic(wd[:])
 	return c
 }
 
