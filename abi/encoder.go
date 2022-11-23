@@ -151,7 +151,7 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 }
 
 func (d *Builder) Dynamic() *Builder {
-	return d.EnterDynamic(0)
+	return d.EnterDynamic(-1)
 }
 
 func (d *Builder) ExitDynamic() *Builder {
@@ -186,10 +186,12 @@ func (d *Builder) writeChild() {
 	}
 
 	d.parent.WriteLoc(d.loc, d.parent.m.cur)
-	if d.len < 1 {
-		d.len = len(d.children)
+	if d.len > 0 {
+		if d.len < 1 {
+			d.len = len(d.children)
+		}
+		d.parent.WriteInt(d.len)
 	}
-	d.parent.WriteInt(d.len)
 	d.parent.m.WriteDynamic(d.m.encoded)
 }
 
