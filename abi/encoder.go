@@ -7,7 +7,6 @@ import (
 	"github.com/holiman/uint256"
 )
 
-<<<<<<< HEAD
 const lnlen = 32 // line length
 type Memory interface {
 	// returns the full data
@@ -23,74 +22,6 @@ type Memory interface {
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
-=======
-// the word, which contains either pointer or bytes data
-type word struct {
-	pointer int
-	dat     []byte
-}
-
-func padRight32(xs []byte) []byte {
-	pl := 32 * (len(xs) / 32)
-	if pl == 0 {
-		pl = 32
-	}
-	return rightPadBytes(xs, pl)
-}
-
-func padLeft32(xs []byte) []byte {
-	pl := 32 * (len(xs) / 32)
-	if pl == 0 {
-		pl = 32
-	}
-	r := leftPadBytes(xs, pl)
-	return r
-}
-
-func rightPadBytes(slice []byte, l int) []byte {
-	if l <= len(slice) {
-		return slice
-	}
-	padded := make([]byte, l-len(slice))
-	return append(slice, padded...)
-}
-
-func leftPadBytes(slice []byte, l int) []byte {
-	if l <= len(slice) {
-		return slice
-	}
-	padded := make([]byte, l-len(slice))
-	return append(padded, slice...)
-}
-
-type Builder struct {
-	parent *Builder
-
-	m memory
-	w *bytes.Buffer
-}
-
-// either returns dat if pointer is 0, or the 32 bytes of word
-func (v *word) StackBytes() []byte {
-	if v.pointer == 0 {
-		return v.dat
-	}
-	o := [8]byte{}
-	binary.BigEndian.PutUint64(o[:], uint64(v.pointer))
-	return padLeft32(o[:])
-}
-
-type memory struct {
-	stack []word
-
-	// current stack pointer
-	cur int
-
-	heap [][]byte
-
-	// current heap size
-	hz int
->>>>>>> 72079c5 (dont judge me)
 }
 
 func (m *memory) Data() []byte {
@@ -209,17 +140,6 @@ func (d *Builder) EnterArray(t TypeName, l int) *Builder {
 		return d.EnterGroup(l, false)
 	}
 	return d.EnterGroup(-l, false)
-}
-
-func (d *Builder) EnterTuple() *Builder {
-	return d.EnterDynamic(0)
-}
-
-// fixed size array
-func (d *Builder) EnterArray(l int) *Builder {
-	c := d.EnterDynamic(l)
-	c.parent.dym = false
-	return c
 }
 
 // exit dynamic element
