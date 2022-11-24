@@ -195,8 +195,3 @@ func (d *Builder) WriteString(s string) *Builder {
 	}
 	return dy.ExitDynamic()
 }
-
-//func (d *Builder) Finish() []byte {
-//	d.writeChild()
-//	return d.Mem().Data()
-//}
