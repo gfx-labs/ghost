@@ -287,27 +287,3 @@ func (d *Builder) WriteString(s string) *Builder {
 func (d *Builder) WriteBytes(s string) *Builder {
 	return d.WriteString(s)
 }
-
-func (d *Builder) writeChild() {
-	if d.children != nil {
-		for _, c := range d.children {
-			c.writeChild()
-		}
-	}
-
-	if d.parent == nil {
-		return
-	}
-
-	d.parent.WriteLoc(d.loc, d.parent.m.cur)
-	if d.len < 1 {
-		d.len = len(d.children)
-	}
-	d.parent.WriteInt(d.len)
-	d.parent.m.WriteDynamic(d.m.encoded)
-}
-
-func (d *Builder) Finish() []byte {
-	d.writeChild()
-	return d.m.encoded
-}
