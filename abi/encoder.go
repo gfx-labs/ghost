@@ -142,6 +142,17 @@ func (d *Builder) EnterArray(t TypeName, l int) *Builder {
 	return d.EnterGroup(-l, false)
 }
 
+func (d *Builder) EnterTuple() *Builder {
+	return d.EnterDynamic(0)
+}
+
+// fixed size array
+func (d *Builder) EnterArray(l int) *Builder {
+	c := d.EnterDynamic(l)
+	c.parent.dym = false
+	return c
+}
+
 // exit dynamic element
 func (d *Builder) Exit() *Builder {
 	if d.parent == nil {
