@@ -1,9 +1,9 @@
 package abi
 
 import (
-	"log"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +34,7 @@ func TestEncodeDynamicSimple(t *testing.T) {
 	ans := b.
 		EnterDynamic(2).
 		WriteInt(123).WriteInt(124).
-		ExitDynamic().
+		Exit().
 		WriteInt(4414).
 		Finish()
 	assert.Equal(t, PrettyHex(ans), `
@@ -48,12 +48,12 @@ func TestEncodeDynamicComplex(t *testing.T) {
 	b := &Builder{}
 	ans := b.
 		EnterDynamic(2).
-		EnterDynamic(2).WriteInt(1).WriteInt(2).ExitDynamic().
-		EnterDynamic(1).WriteInt(3).ExitDynamic().
-		ExitDynamic().
+		EnterDynamic(2).WriteInt(1).WriteInt(2).Exit().
+		EnterDynamic(1).WriteInt(3).Exit().
+		Exit().
 		EnterDynamic(3).
 		WriteString("one").WriteString("two").WriteString("three").
-		ExitDynamic().
+		Exit().
 		Finish()
 	assert.Equal(t, PrettyHex(ans), `
 0000000000000000000000000000000000000000000000000000000000000040
@@ -120,10 +120,9 @@ func TestEncodeNestedDynamic(t *testing.T) {
 		WriteString("hello?").
 		WriteString("hello.").
 		WriteString("hello,").
-		ExitDynamic().
+		Exit().
 		WriteInt(4414).
 		Finish()
-	log.Println(PrettyHex(ans))
 
 	assert.Equal(t, PrettyHex(ans), `
 0000000000000000000000000000000000000000000000000000000000000040
@@ -141,5 +140,13 @@ func TestEncodeNestedDynamic(t *testing.T) {
 68656c6c6f2e0000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000006
 68656c6c6f2c0000000000000000000000000000000000000000000000000000`)
+}
 
+func TestStaticTuple(t *testing.T) {
+	b := &Builder{}
+	ans := b.
+		WriteBool(true).
+		StartTuple().
+		WriteAddress(common.HexToAddress("0x1111111111222222222233333333334444444444")).
+		st
 }

@@ -45,11 +45,11 @@ func (m *memory) grow(amt int) {
 
 // *************************	BUILDER
 type Builder struct {
-	NewMem func() Memory
-	parent *Builder
-	len    int // # of elements for dynamic
-	loc    int // starting pt in the parent builder
-
+	NewMem   func() Memory
+	parent   *Builder
+	len      int    // # of elements for dynamic
+	loc      int    // starting pt in the parent builder
+	dym      bool   // is it dynamic
 	mm       Memory // the encoding of the segment
 	bm       memory
 	children []*Builder
@@ -76,21 +76,42 @@ func (d *Builder) EnterDynamic(l int) *Builder {
 	}
 	d.children = append(d.children, c)
 	if l > 0 {
+		c.dym = true
 		wd := [32]byte{}
 		d.Mem().Put(-1, wd[:])
+		if !d.dym {
+			d.dym = true
+			d.len = -1
+			b := d
+			for b.parent != nil {
+				b.parent.Mem().Put(b.loc, wd[:])
+				b = b.parent
+			}
+		}
 	}
 	return c
 }
 
 // enter dynamic element
-func (d *Builder) Dynamic() *Builder {
+func (d *Builder) EnterDynamicArray() *Builder {
 	return d.EnterDynamic(-1)
 }
 
+func (d *Builder) EnterTuple() *Builder {
+	return d.EnterDynamic(0)
+}
+
+// fixed size array
+func (d *Builder) EnterArray(l int) *Builder {
+	c := d.EnterDynamic(l)
+	c.parent.dym = false
+	return c
+}
+
 // exit dynamic element
-func (d *Builder) ExitDynamic() *Builder {
+func (d *Builder) Exit() *Builder {
 	if d.parent == nil {
-		panic("tried to exit dynamic when not in one")
+		panic("tried to exit group when not in one")
 	}
 	return d.parent
 }
@@ -130,18 +151,6 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 	return d
 }
 
-// wrinting a dynamic segment's byte location/offset
-func (d *Builder) WriteLoc(loc int, i int) {
-	xs := big.NewInt(int64(i)).Bytes()
-	copy(d.m.encoded[loc:loc+lnlen], pad(xs, false))
-}
-
-func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.m.WriteStatic(d.m.cur, pad(xs, true))
-	return d
-}
-
-// *************************	WRITING SPECIFIC DATA TYPES
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
 	return d
@@ -197,37 +206,13 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 
 func (d *Builder) WriteString(s string) *Builder {
 	dy := d.EnterDynamic(len(s))
-	cur := 0
-	for cur+lnlen < len(s) {
-		dy.WriteWord([]byte(s[cur:(cur + 32)]))
-		cur += lnlen
+	i := (len(s) / lnlen) * lnlen
+	if i > 0 {
+		dy.WriteWord([]byte(s[:i]))
 	}
-	if len(s[cur:]) > 0 {
-		dy.WritePadRight([]byte(s[cur:]))
+	rem := len(s) - i
+	if rem > 0 {
+		dy.WritePadRight([]byte(s[i:]))
 	}
-	return dy.ExitDynamic()
-}
-
-func (d *Builder) writeChild() {
-	if d.children != nil {
-		for _, c := range d.children {
-			c.writeChild()
-		}
-	}
-
-	if d.parent == nil {
-		return
-	}
-
-	d.parent.WriteLoc(d.loc, d.parent.m.cur)
-	if d.len < 1 {
-		d.len = len(d.children)
-	}
-	d.parent.WriteInt(d.len)
-	d.parent.m.WriteDynamic(d.m.encoded)
-}
-
-func (d *Builder) Finish() []byte {
-	d.writeChild()
-	return d.m.encoded
+	return dy.Exit()
 }
