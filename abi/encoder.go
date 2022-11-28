@@ -19,10 +19,7 @@ type Memory interface {
 	Put(loc int, data []byte)
 }
 
-<<<<<<< HEAD
 // default memory implementation
-=======
->>>>>>> d408d1b (reformat)
 type memory struct {
 	encoded []byte // already encoded. history
 	cur     int    // current pointer (bytes)
@@ -234,29 +231,6 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 
 // *************************	WRITING SPECIFIC DATA TYPES
 
-// generic builder writer methods
-func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().Put(-1, padright(xs))
-	return d
-}
-
-func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().Put(-1, padleft(xs))
-	return d
-}
-
-// wrinting a dynamic segment's byte location/offset
-func (d *Builder) WriteLoc(loc int, i int) {
-	xs := big.NewInt(int64(i)).Bytes()
-	copy(d.m.encoded[loc:loc+lnlen], pad(xs, false))
-}
-
-func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.m.WriteStatic(d.m.cur, pad(xs, true))
-	return d
-}
-
-// *************************	WRITING SPECIFIC DATA TYPES
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
 	return d
@@ -333,28 +307,4 @@ func (d *Builder) WriteString(s string) *Builder {
 
 func (d *Builder) WriteBytes(s string) *Builder {
 	return d.WriteString(s)
-}
-
-func (d *Builder) writeChild() {
-	if d.children != nil {
-		for _, c := range d.children {
-			c.writeChild()
-		}
-	}
-
-	if d.parent == nil {
-		return
-	}
-
-	d.parent.WriteLoc(d.loc, d.parent.m.cur)
-	if d.len < 1 {
-		d.len = len(d.children)
-	}
-	d.parent.WriteInt(d.len)
-	d.parent.m.WriteDynamic(d.m.encoded)
-}
-
-func (d *Builder) Finish() []byte {
-	d.writeChild()
-	return d.m.encoded
 }
