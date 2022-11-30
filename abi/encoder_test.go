@@ -3,7 +3,6 @@ package abi
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,26 +31,26 @@ func TestEncodeSimple(t *testing.T) {
 func TestEncodeDynamicSimple(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		EnterDynamic(2).
+		EnterDynamicArray().
 		WriteInt(123).WriteInt(124).
 		Exit().
 		WriteInt(4414).
 		Finish()
-	assert.Equal(t, PrettyHex(ans), `
+	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000040
 000000000000000000000000000000000000000000000000000000000000113e
 0000000000000000000000000000000000000000000000000000000000000002
 000000000000000000000000000000000000000000000000000000000000007b
-000000000000000000000000000000000000000000000000000000000000007c`)
+000000000000000000000000000000000000000000000000000000000000007c`, PrettyHex(ans))
 }
 func TestEncodeDynamicComplex(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		EnterDynamic(2).
-		EnterDynamic(2).WriteInt(1).WriteInt(2).Exit().
-		EnterDynamic(1).WriteInt(3).Exit().
+		EnterDynamicArray().
+		EnterDynamicArray().WriteInt(1).WriteInt(2).Exit().
+		EnterDynamicArray().WriteInt(3).Exit().
 		Exit().
-		EnterDynamic(3).
+		EnterDynamicArray().
 		WriteString("one").WriteString("two").WriteString("three").
 		Exit().
 		Finish()
@@ -115,7 +114,7 @@ func TestEncodeLongString(t *testing.T) {
 func TestEncodeNestedDynamic(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		EnterDynamic(4).
+		EnterDynamicArray().
 		WriteString("hello!").
 		WriteString("hello?").
 		WriteString("hello.").
@@ -143,10 +142,12 @@ func TestEncodeNestedDynamic(t *testing.T) {
 }
 
 func TestStaticTuple(t *testing.T) {
-	b := &Builder{}
-	ans := b.
-		WriteBool(true).
-		StartTuple().
-		WriteAddress(common.HexToAddress("0x1111111111222222222233333333334444444444")).
-		st
+	// b := &Builder{}
+	// ans := b.
+	// 	WriteBool(true).
+	// 	EnterTuple().
+	// 	WriteAddress(common.HexToAddress("0x1111111111222222222233333333334444444444")).
+	// 	EnterArray(3).WriteUint(11).WriteUint(12).WriteUint(13).Exit().
+	// 	Exit().
+
 }
