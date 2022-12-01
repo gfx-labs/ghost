@@ -183,6 +183,12 @@ func (d *Decoder) ReadDynamic() (*Decoder, error) {
 	}
 	return NewDecoder(d.xs[actual:]), nil
 }
+func (d *Decoder) Remaining() []byte {
+	if d.cur > len(d.xs) {
+		return nil
+	}
+	return d.xs[d.cur:]
+}
 
 func (d *Decoder) ReadString() (string, error) {
 	offset, err := d.ReadBigUint()
