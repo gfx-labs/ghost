@@ -183,6 +183,24 @@ func (d *Decoder) ReadDynamic() (*Decoder, error) {
 	}
 	return NewDecoder(d.xs[actual:]), nil
 }
+func (d *Decoder) ReadDynamicLength() (*Decoder, int, error) {
+	offset, err := d.ReadBigUint()
+	if err != nil {
+		return nil, 0, err
+	}
+	actual := int(offset.Uint64())
+	if len(d.xs) < actual {
+		return nil, 0, errors.New("abi: dynamic overflow")
+	}
+	// hop over to the new one
+	dec1 := NewDecoder(d.xs[actual:])
+	l, err := dec1.ReadInt()
+	if err != nil {
+		return nil, 0, errors.New("abi: len unexpected EOF")
+	}
+	return NewDecoder(dec1.xs[32:]), l, nil
+}
+
 func (d *Decoder) Remaining() []byte {
 	if d.cur > len(d.xs) {
 		return nil
