@@ -8,7 +8,6 @@ import (
 )
 
 const lnlen = 32 // line length
-<<<<<<< HEAD
 type Memory interface {
 	// returns the full data
 	Data() []byte
@@ -18,26 +17,6 @@ type Memory interface {
 	Insert(loc int, data []byte)
 	// replacing bytes at a location in memory, growing the slice if needed
 	Put(loc int, data []byte)
-=======
-
-func pad(data []byte, right bool) []byte {
-	l := lnlen * (len(data)/(lnlen+1) + 1) // ceiling
-
-	padding := make([]byte, l-len(data))
-	if right {
-		return append(data, padding...)
-	} else {
-		return append(padding, data...)
-	}
-}
-
-type Builder struct {
-	parent   *Builder
-	len      int    // # of elements for dynamic
-	loc      int    // starting pt in the parent builder
-	m        memory // the encoding of the segment
-	children []*Builder
->>>>>>> 063f07a (encoder)
 }
 
 // default memory implementation
@@ -329,28 +308,4 @@ func (d *Builder) WriteString(s string) *Builder {
 
 func (d *Builder) WriteBytes(s string) *Builder {
 	return d.WriteString(s)
-}
-
-func (d *Builder) writeChild() {
-	if d.children != nil {
-		for _, c := range d.children {
-			c.writeChild()
-		}
-	}
-
-	if d.parent == nil {
-		return
-	}
-
-	d.parent.WriteLoc(d.loc, d.parent.m.cur)
-	if d.len < 1 {
-		d.len = len(d.children)
-	}
-	d.parent.WriteInt(d.len)
-	d.parent.m.WriteDynamic(d.m.encoded)
-}
-
-func (d *Builder) Finish() []byte {
-	d.writeChild()
-	return d.m.encoded
 }
