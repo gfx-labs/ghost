@@ -76,7 +76,8 @@ type Builder struct {
 	mm       Memory // the encoding of the segment
 	bm       memory
 	children []*Builder
-	rlen     int // running length
+	rlen     int  // running length
+	write    bool // write length or not
 }
 
 // get the memory object, uses default memory impl by default
@@ -94,12 +95,13 @@ func (d *Builder) Mem() Memory {
 // l = -1 is tuple (static)
 // l > 0 is length specified array (dynamic elements)
 // l < 0 is length specified array (static elements)
-func (d *Builder) EnterGroup(l int) *Builder {
+func (d *Builder) EnterGroup(l int, w bool) *Builder {
 	c := &Builder{
 		parent: d,
 		loc:    d.Mem().Pos(0),
 		len:    l,
 		NewMem: d.NewMem,
+		write:  w,
 	}
 	d.children = append(d.children, c)
 	if l >= 0 { // is dynamic
@@ -109,8 +111,6 @@ func (d *Builder) EnterGroup(l int) *Builder {
 			d.len = 0
 			b := d
 			for b.parent != nil {
-				//fmt.Println(PrettyHex(b.parent.Mem().Data()))
-				//xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
 				b.parent.Mem().Insert(b.loc, wd[:])
 				b.parent.rlen = b.parent.rlen - 1
 				b = b.parent
@@ -122,20 +122,20 @@ func (d *Builder) EnterGroup(l int) *Builder {
 
 // length unspecified array
 func (d *Builder) EnterDynamicArray() *Builder {
-	return d.EnterGroup(0)
+	return d.EnterGroup(0, true)
 }
 
 func (d *Builder) EnterTuple() *Builder {
-	return d.EnterGroup(-1)
+	return d.EnterGroup(-1, false)
 }
 
 // fixed size array
 // TODO: write in a type + size compliance check later
 func (d *Builder) EnterArray(t TypeName, l uint) *Builder {
 	if t.IsDynamic() {
-		return d.EnterGroup(int(l))
+		return d.EnterGroup(int(l), false)
 	}
-	return d.EnterGroup(-int(l))
+	return d.EnterGroup(-int(l), false)
 }
 
 // exit dynamic element
@@ -185,8 +185,11 @@ func (d *Builder) Finish() []byte {
 	if d.len > 0 { // dynamic element, need to write offset
 		xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
 		d.parent.Mem().Put(d.loc, xs[:])
-		d.parent.WriteInt(d.len) // how many elements in the dynamic
-		d.parent.rlen -= 2
+		d.parent.rlen -= 1
+		if d.write {
+			d.parent.WriteInt(d.len) // how many elements in the dynamic
+			d.parent.rlen -= 1
+		}
 	}
 	d.parent.Mem().Put(-1, d.Mem().Data())
 	d.parent.rlen = d.parent.rlen - len(d.Mem().Data())/lnlen
@@ -268,7 +271,7 @@ func (d *Builder) WriteFixedBytes(i int, s string) *Builder {
 }
 
 func (d *Builder) WriteString(s string) *Builder {
-	dy := d.EnterGroup(len(s))
+	dy := d.EnterGroup(len(s), true)
 	i := (len(s) / lnlen) * lnlen
 	if i > 0 {
 		dy.WriteWord([]byte(s[:i]))
