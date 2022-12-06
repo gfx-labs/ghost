@@ -221,12 +221,12 @@ func (d *Builder) Finish() []byte {
 
 // generic builder writer methods
 func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().Replace(-1, padright(xs))
+	d.Mem().Put(-1, padright(xs))
 	return d
 }
 
 func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().Replace(-1, padleft(xs))
+	d.Mem().Put(-1, padleft(xs))
 	return d
 }
 
