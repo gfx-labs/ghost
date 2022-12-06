@@ -16,7 +16,7 @@ type Memory interface {
 	// insert bytes to a location in memory, appending if needed
 	Insert(loc int, data []byte)
 	// replacing bytes at a location in memory, growing the slice if needed
-	Replace(loc int, data []byte)
+	Put(loc int, data []byte)
 }
 
 type memory struct {
@@ -52,7 +52,7 @@ func (m *memory) Insert(loc int, data []byte) {
 }
 
 // replaces data at the location
-func (m *memory) Replace(loc int, data []byte) {
+func (m *memory) Put(loc int, data []byte) {
 	if loc == -1 {
 		loc = m.cur
 	}
@@ -104,11 +104,13 @@ func (d *Builder) EnterGroup(l int) *Builder {
 	d.children = append(d.children, c)
 	if l >= 0 { // is dynamic
 		wd := [32]byte{} // insert offset placeholder
-		d.Mem().Replace(-1, wd[:])
+		d.Mem().Put(-1, wd[:])
 		if d.len < 0 { // parent is static
 			d.len = 0
 			b := d
 			for b.parent != nil {
+				//fmt.Println(PrettyHex(b.parent.Mem().Data()))
+				//xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
 				b.parent.Mem().Insert(b.loc, wd[:])
 				b.parent.rlen = b.parent.rlen - 1
 				b = b.parent
@@ -144,9 +146,32 @@ func (d *Builder) Exit() *Builder {
 	return d.parent
 }
 
+func reorder(children []*Builder) []*Builder {
+	r := make([]*Builder, len(children))
+	border := 0
+	for _, c := range children {
+		if c.len < 0 { // is static
+			border++
+		}
+	}
+	i := 0
+	j := 0
+	for _, c := range children {
+		if c.len < 0 {
+			r[i] = c
+			i++
+		} else {
+			r[border+j] = c
+			j++
+		}
+	}
+	return r
+}
+
 // finish closes all children, and returns the result slice
 func (d *Builder) Finish() []byte {
 	if d.children != nil {
+		d.children = reorder(d.children)
 		for _, c := range d.children {
 			c.Finish()
 		}
@@ -155,21 +180,15 @@ func (d *Builder) Finish() []byte {
 		return d.Mem().Data()
 	}
 	if d.len == 0 {
-		// fmt.Println(len(d.Mem().Data()) / lnlen)
-		// fmt.Println(len(d.children))
-		// fmt.Println(d.rlen)
-		// fmt.Println("***")
 		d.len = len(d.Mem().Data())/lnlen + len(d.children) + d.rlen
 	}
-	//fmt.Println(d.len)
-	//fmt.Println(d.Mem().Data())
 	if d.len > 0 { // dynamic element, need to write offset
 		xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
-		d.parent.Mem().Replace(d.loc, xs[:])
+		d.parent.Mem().Put(d.loc, xs[:])
 		d.parent.WriteInt(d.len) // how many elements in the dynamic
 		d.parent.rlen -= 2
 	}
-	d.parent.Mem().Insert(-1, d.Mem().Data())
+	d.parent.Mem().Put(-1, d.Mem().Data())
 	d.parent.rlen = d.parent.rlen - len(d.Mem().Data())/lnlen
 	return d.Mem().Data()
 }
@@ -178,12 +197,12 @@ func (d *Builder) Finish() []byte {
 
 // generic builder writer methods
 func (d *Builder) WritePadRight(xs []byte) *Builder {
-	d.Mem().Replace(-1, padright(xs))
+	d.Mem().Put(-1, padright(xs))
 	return d
 }
 
 func (d *Builder) WriteWord(xs []byte) *Builder {
-	d.Mem().Replace(-1, padleft(xs))
+	d.Mem().Put(-1, padleft(xs))
 	return d
 }
 
@@ -240,6 +259,14 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 	return d
 }
 
+// 0 < i <= 32
+func (d *Builder) WriteFixedBytes(i int, s string) *Builder {
+	if i < len(s) {
+		panic("input length mismatch")
+	}
+	return d.WritePadRight([]byte(s))
+}
+
 func (d *Builder) WriteString(s string) *Builder {
 	dy := d.EnterGroup(len(s))
 	i := (len(s) / lnlen) * lnlen
@@ -251,4 +278,8 @@ func (d *Builder) WriteString(s string) *Builder {
 		dy.WritePadRight([]byte(s[i:]))
 	}
 	return dy.Exit()
+}
+
+func (d *Builder) WriteBytes(s string) *Builder {
+	return d.WriteString(s)
 }
