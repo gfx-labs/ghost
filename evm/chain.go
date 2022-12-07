@@ -3,11 +3,11 @@ package evm
 import (
 	"math/big"
 
+	"gfx.cafe/open/ghost/ethtype"
 	"gfx.cafe/open/ghost/evm/bloom"
-	"github.com/ethereum/go-ethereum/common"
 )
 
-type Address = common.Address
+type Address = ethtype.Address
 
 type Account interface {
 }
@@ -54,7 +54,7 @@ type CallContext interface {
 
 	Return() error
 
-	Caller() common.Address
+	Caller() Address
 	Contract() Contract
 	// get balance of account
 	Balance(target Address) Word
