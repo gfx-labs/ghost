@@ -13,7 +13,9 @@ type Memory interface {
 	Data() []byte
 	// increments the cursor by input, returns new cursor
 	Pos(int) int
-	// put bytes to a location in memory, appending if needed
+	// insert bytes to a location in memory, appending if needed
+	Insert(loc int, data []byte)
+	// replacing bytes at a location in memory, growing the slice if needed
 	Put(loc int, data []byte)
 }
 
@@ -29,6 +31,27 @@ func (m *memory) Pos(i int) int {
 	m.cur = m.cur + i
 	return m.cur
 }
+
+// inserts data at the location
+func (m *memory) Insert(loc int, data []byte) {
+	if loc == -1 {
+		loc = m.cur
+	}
+	var s []byte
+	if loc == 0 {
+		s = data
+	} else {
+		s = append(m.encoded[:loc], data...)
+	}
+	if loc == len(m.encoded) {
+		m.encoded = s
+	} else {
+		m.encoded = append(s, m.encoded[loc:]...)
+	}
+	m.Pos(len(data))
+}
+
+// replaces data at the location
 func (m *memory) Put(loc int, data []byte) {
 	if loc == -1 {
 		loc = m.cur
@@ -45,14 +68,15 @@ func (m *memory) grow(amt int) {
 
 // *************************	BUILDER
 type Builder struct {
-	NewMem func() Memory
-	parent *Builder
-	len    int // # of elements for dynamic
-	loc    int // starting pt in the parent builder
-
+	NewMem   func() Memory
+	parent   *Builder
+	len      int    // # of elements. also used as a boolean
+	loc      int    // starting pt in the parent builder
 	mm       Memory // the encoding of the segment
 	bm       memory
 	children []*Builder
+	rlen     int  // running length
+	write    bool // write length or not
 }
 
 // get the memory object, uses default memory impl by default
@@ -66,38 +90,87 @@ func (d *Builder) Mem() Memory {
 	return &d.bm
 }
 
-// builder dynamic handling
-func (d *Builder) EnterDynamic(l int) *Builder {
+// l = 0 is variable length dynamic
+// l = -1 is tuple (static)
+// l > 0 is length specified array (dynamic elements)
+// l < 0 is length specified array (static elements)
+func (d *Builder) EnterGroup(l int, w bool) *Builder {
 	c := &Builder{
 		parent: d,
 		loc:    d.Mem().Pos(0),
 		len:    l,
 		NewMem: d.NewMem,
+		write:  w,
 	}
 	d.children = append(d.children, c)
-	if l > 0 {
-		wd := [32]byte{}
+	if l >= 0 { // is dynamic
+		wd := [32]byte{} // insert offset placeholder
 		d.Mem().Put(-1, wd[:])
+		if d.len < 0 { // parent is static
+			d.len = 0
+			b := d
+			for b.parent != nil {
+				b.parent.Mem().Insert(b.loc, wd[:])
+				b.parent.rlen = b.parent.rlen - 1
+				b = b.parent
+			}
+		}
 	}
 	return c
 }
 
-// enter dynamic element
-func (d *Builder) Dynamic() *Builder {
-	return d.EnterDynamic(-1)
+// length unspecified array
+func (d *Builder) EnterDynamicArray() *Builder {
+	return d.EnterGroup(0, true)
+}
+
+func (d *Builder) EnterTuple() *Builder {
+	return d.EnterGroup(-1, false)
+}
+
+// fixed size array
+// TODO: write in a type + size compliance check later
+func (d *Builder) EnterArray(t TypeName, l uint) *Builder {
+	if t.IsDynamic() {
+		return d.EnterGroup(int(l), false)
+	}
+	return d.EnterGroup(-int(l), false)
 }
 
 // exit dynamic element
-func (d *Builder) ExitDynamic() *Builder {
+func (d *Builder) Exit() *Builder {
 	if d.parent == nil {
-		panic("tried to exit dynamic when not in one")
+		panic("tried to exit group when not in one")
 	}
 	return d.parent
+}
+
+func reorder(children []*Builder) []*Builder {
+	r := make([]*Builder, len(children))
+	border := 0
+	for _, c := range children {
+		if c.len < 0 { // is static
+			border++
+		}
+	}
+	i := 0
+	j := 0
+	for _, c := range children {
+		if c.len < 0 {
+			r[i] = c
+			i++
+		} else {
+			r[border+j] = c
+			j++
+		}
+	}
+	return r
 }
 
 // finish closes all children, and returns the result slice
 func (d *Builder) Finish() []byte {
 	if d.children != nil {
+		d.children = reorder(d.children)
 		for _, c := range d.children {
 			c.Finish()
 		}
@@ -105,19 +178,22 @@ func (d *Builder) Finish() []byte {
 	if d.parent == nil {
 		return d.Mem().Data()
 	}
-	xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
-	d.parent.Mem().Put(d.loc, xs[:])
-	if d.len > 0 {
-		if d.len < 1 {
-			d.len = len(d.children)
+	if d.len == 0 {
+		d.len = len(d.Mem().Data())/lnlen + len(d.children) + d.rlen
+	}
+	if d.len > 0 { // dynamic element, need to write offset
+		xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
+		d.parent.Mem().Put(d.loc, xs[:])
+		d.parent.rlen -= 1
+		if d.write {
+			d.parent.WriteInt(d.len) // how many elements in the dynamic
+			d.parent.rlen -= 1
 		}
-		d.parent.WriteInt(d.len)
 	}
 	d.parent.Mem().Put(-1, d.Mem().Data())
+	d.parent.rlen = d.parent.rlen - len(d.Mem().Data())/lnlen
 	return d.Mem().Data()
 }
-
-// *************************	WRITING SPECIFIC DATA TYPES
 
 // generic builder writer methods
 func (d *Builder) WritePadRight(xs []byte) *Builder {
@@ -130,6 +206,7 @@ func (d *Builder) WriteWord(xs []byte) *Builder {
 	return d
 }
 
+// *************************	WRITING SPECIFIC DATA TYPES
 func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
 	d.WriteWord(a.Bytes())
 	return d
@@ -183,15 +260,27 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 	return d
 }
 
+// 0 < i <= 32
+func (d *Builder) WriteFixedBytes(i int, s string) *Builder {
+	if i < len(s) {
+		panic("input length mismatch")
+	}
+	return d.WritePadRight([]byte(s))
+}
+
 func (d *Builder) WriteString(s string) *Builder {
-	dy := d.EnterDynamic(len(s))
-	cur := 0
-	for cur+lnlen < len(s) {
-		dy.WriteWord([]byte(s[cur:(cur + 32)]))
-		cur += lnlen
+	dy := d.EnterGroup(len(s), true)
+	i := (len(s) / lnlen) * lnlen
+	if i > 0 {
+		dy.WriteWord([]byte(s[:i]))
 	}
-	if len(s[cur:]) > 0 {
-		dy.WritePadRight([]byte(s[cur:]))
+	rem := len(s) - i
+	if rem > 0 {
+		dy.WritePadRight([]byte(s[i:]))
 	}
-	return dy.ExitDynamic()
+	return dy.Exit()
+}
+
+func (d *Builder) WriteBytes(s string) *Builder {
+	return d.WriteString(s)
 }
