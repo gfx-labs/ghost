@@ -1,11 +1,11 @@
 package evm
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 func (s *Stack) LogN(idx int) error {
-	topics := make([]common.Hash, idx)
+	topics := make([]uint256.Int, idx)
 	for i := 2; i < (idx + 2); i++ {
 		topics[i-2] = s.s[i]
 	}
