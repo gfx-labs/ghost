@@ -61,7 +61,6 @@ func (m *memory) Put(loc int, data []byte) {
 	}
 	copy(m.encoded[loc:loc+len(data)], data)
 }
-
 func (m *memory) grow(amt int) {
 	m.encoded = append(m.encoded, make([]byte, amt)...)
 	m.Pos(amt)
