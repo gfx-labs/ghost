@@ -196,8 +196,6 @@ func (d *Builder) Finish() []byte {
 	return d.Mem().Data()
 }
 
-// *************************	WRITING SPECIFIC DATA TYPES
-
 // generic builder writer methods
 func (d *Builder) WritePadRight(xs []byte) *Builder {
 	d.Mem().Put(-1, padright(xs))
