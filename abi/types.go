@@ -12,6 +12,12 @@ type TypeName string
 func (t TypeName) IsSlice() bool {
 	return strings.HasSuffix(string(t), "[]")
 }
+
+func (t TypeName) IsFixedSlice() bool {
+	match, _ := regexp.MatchString("([a-z]+)\\[[0-9]+\\]", string(t))
+	return match
+}
+
 func (t TypeName) IsTuple() bool {
 	return strings.HasPrefix(string(t), "(")
 }
@@ -28,6 +34,7 @@ func (t TypeName) IsNumber() bool {
 	}
 	return false
 }
+
 func (t TypeName) IsUnsigned() bool {
 	if len(t) == 0 {
 		return false
@@ -88,6 +95,10 @@ func (t TypeName) TupleArgs() []TypeName {
 	}
 }
 
+func ARRAY(t TypeName, n int) TypeName {
+	return TypeName(string(t) + "[" + strconv.Itoa(n) + "]")
+}
+
 func SLICE(t TypeName) TypeName {
 	return TypeName(t + "[]")
 }
@@ -138,6 +149,7 @@ const (
 )
 
 const (
+	UINT    TypeName = "uint256"
 	UINT8   TypeName = "uint8"
 	UINT16  TypeName = "uint16"
 	UINT24  TypeName = "uint24"
@@ -170,6 +182,7 @@ const (
 	UINT240 TypeName = "uint240"
 	UINT248 TypeName = "uint248"
 	UINT256 TypeName = "uint256"
+	INT     TypeName = "int256"
 	INT8    TypeName = "int8"
 	INT16   TypeName = "int16"
 	INT24   TypeName = "int24"

@@ -59,22 +59,6 @@ func (d *Decoder) ReadNPadRight32(n int) ([]byte, error) {
 	}
 	return o, nil
 }
-func (d *Decoder) ReadNPadLeft32(n int) ([]byte, error) {
-	diff := 32 - (n % 32)
-	if diff == 32 {
-		diff = 0
-	}
-	_, err := d.ReadN(diff)
-	if err != nil {
-		return nil, err
-	}
-	o := make([]byte, n)
-	_, err = d.Read(o[:])
-	if err != nil {
-		return nil, err
-	}
-	return o, nil
-}
 
 func (d *Decoder) Read(o []byte) (int, error) {
 	if (len(d.xs) - d.cur) < len(o) {
