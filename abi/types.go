@@ -1,6 +1,7 @@
 package abi
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -32,6 +33,25 @@ func (t TypeName) IsUnsigned() bool {
 		return false
 	}
 	return t[0] == 'u'
+}
+
+func (t TypeName) IsDynamic() bool {
+	// tuple check
+	dym := false
+	if t.IsTuple() {
+		for _, arg := range t.TupleArgs() {
+			dym = dym || arg.IsDynamic()
+		}
+		return dym
+	}
+	// T[k] check
+	match, _ := regexp.MatchString("([a-z]+)\\[[0-9]+\\]", string(t))
+	if match {
+		i := strings.Index(string(t), "[")
+		t1 := TypeName(t[:i])
+		return t1.IsDynamic()
+	}
+	return t.IsSlice() || t == "bytes" || t == "string"
 }
 
 func (t TypeName) TupleArgs() []TypeName {
