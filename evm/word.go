@@ -4,4 +4,4 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type Word = uint256.Int
+type Word = *uint256.Int
