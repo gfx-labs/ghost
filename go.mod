@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	gfx.cafe/open/goutil v1.9.7
-	gfx.cafe/open/jrpc v0.0.54
-	gfx.cafe/util/go/generic v0.0.0-20221201112012-e343fc0f2bb8
+	gfx.cafe/open/jrpc v0.0.58
+	gfx.cafe/util/go/generic v0.0.0-20221221002138-cc76846e2979
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/holiman/uint256 v1.2.1
 	github.com/stretchr/testify v1.8.1
@@ -14,8 +14,8 @@ require (
 )
 
 require (
-	gfx.cafe/util/go/bufpool v0.0.0-20221201112012-e343fc0f2bb8 // indirect
-	gfx.cafe/util/go/frand v0.0.0-20221201112012-e343fc0f2bb8 // indirect
+	gfx.cafe/util/go/bufpool v0.0.0-20221221002138-cc76846e2979 // indirect
+	gfx.cafe/util/go/frand v0.0.0-20221221002138-cc76846e2979 // indirect
 	git.tuxpa.in/a/zlog v1.32.0 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
