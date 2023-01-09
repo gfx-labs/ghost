@@ -2,6 +2,7 @@ package abi
 
 import (
 	"errors"
+	"io"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -26,6 +27,7 @@ func NewDecoder(xs []byte) *Decoder {
 	}
 }
 
+// reads 32 bytes
 func (d *Decoder) ReadWord() (o [32]byte, err error) {
 	_, err = d.Read(o[:])
 	if err != nil {
@@ -34,6 +36,7 @@ func (d *Decoder) ReadWord() (o [32]byte, err error) {
 	return o, nil
 }
 
+// reads n bytes
 func (d *Decoder) ReadN(n int) ([]byte, error) {
 	o := make([]byte, n)
 	_, err := d.Read(o[:])
@@ -185,13 +188,6 @@ func (d *Decoder) ReadDynamicLength() (*Decoder, int, error) {
 	return NewDecoder(dec1.xs[32:]), l, nil
 }
 
-func (d *Decoder) Remaining() []byte {
-	if d.cur > len(d.xs) {
-		return nil
-	}
-	return d.xs[d.cur:]
-}
-
 func (d *Decoder) ReadString() (string, error) {
 	offset, err := d.ReadBigUint()
 	if err != nil {
@@ -211,4 +207,35 @@ func (d *Decoder) ReadString() (string, error) {
 		return "", err
 	}
 	return string(bts), nil
+}
+
+func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
+	startByte := d.cur
+	switch whence {
+	case io.SeekStart:
+		startByte = int(offset)
+	case io.SeekCurrent:
+		startByte = d.cur + int(offset)
+	case io.SeekEnd:
+		startByte = len(d.xs) - int(offset)
+	}
+	if startByte < 0 || startByte > len(d.xs) {
+		return int64(startByte), errors.New("invalid seek offset")
+	}
+	d.cur = startByte
+	return int64(startByte), nil
+}
+
+func (d *Decoder) EnterDynamic() (*Decoder, error) {
+	// assumed that currently at a pointer element
+	val, err := d.ReadInt()
+	if err != nil {
+		return nil, err
+	}
+	dym := &Decoder{
+		xs:  d.xs[d.cur:],
+		cur: 0,
+	}
+	d.Seek(int64(val), io.SeekCurrent)
+	return dym, nil
 }

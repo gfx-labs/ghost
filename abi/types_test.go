@@ -22,7 +22,16 @@ func TestFixedArray(t *testing.T) {
 }
 
 func TestIsDynamic(t *testing.T) {
-
+	tn := BYTES
+	assert.True(t, tn.IsDynamic())
+	tn = SLICE(UINT)
+	assert.True(t, tn.IsDynamic())
+	tn = STRING
+	assert.True(t, tn.IsDynamic())
+	tn = TUPLE(INT, ARRAY(STRING, 5))
+	assert.True(t, tn.IsDynamic())
+	tn = TUPLE(ADDRESS, ARRAY(UINT, 3))
+	assert.False(t, tn.IsDynamic())
 }
 
 func BenchmarkGenerateSignature(b *testing.B) {
