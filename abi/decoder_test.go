@@ -2,6 +2,7 @@ package abi
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
@@ -9,6 +10,19 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 )
+
+func hexDecode(s string) *Decoder {
+	s = strings.TrimPrefix(s, "0x")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, `	`, "")
+	ans, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return NewDecoder(ans)
+}
 
 func TestThing(t *testing.T) {
 	_ = reflect.ValueOf(common.Address{})
@@ -222,15 +236,76 @@ func TestDynamicExample(t *testing.T) {
 	}
 }
 
-func hexDecode(s string) *Decoder {
-	s = strings.TrimPrefix(s, "0x")
-	s = strings.ReplaceAll(s, "\n", "")
-	s = strings.ReplaceAll(s, "\r", "")
-	s = strings.ReplaceAll(s, " ", "")
-	s = strings.ReplaceAll(s, `	`, "")
-	ans, err := hex.DecodeString(s)
-	if err != nil {
-		panic(err)
+func TestSimple(t *testing.T) {
+	dec := hexDecode(`
+0000000000000000000000000000000000000000000000000000000000000007
+0000000000000000000000000000000000000000000000000000000000000040
+0000000000000000000000000000000000000000000000000000000000000003
+0000000000000000000000000000000000000000000000000000000000000021
+0000000000000000000000000000000000000000000000000000000000000022
+0000000000000000000000000000000000000000000000000000000000000023
+	`)
+	type f struct {
+		a uint   `abi:"uint256"`
+		b []uint `abi:"uint256[]"`
 	}
-	return NewDecoder(ans)
+	var r f
+	//err := dec.DecodeInto(&r)
+	err := dec.Decode(TUPLE(UINT, SLICE(UINT)), &r)
+	fmt.Println(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(r.a, 7) {
+		t.Errorf("expect %v got %v", 7, r.a)
+	}
+	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
+		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
+	}
+}
+
+func TestComplex(t *testing.T) {
+	// 7, 0x60, 7 * 0x20,
+	// 		// b
+	// 		3, 0x21, 0x22, 0x23,
+	// 		// c
+	// 		0x40, 0x80,
+	// 		8, string("abcdefgh"),
+	// 		52, string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	dec := hexDecode(`
+0000000000000000000000000000000000000000000000000000000000000007
+0000000000000000000000000000000000000000000000000000000000000060
+00000000000000000000000000000000000000000000000000000000000000e0
+0000000000000000000000000000000000000000000000000000000000000003
+0000000000000000000000000000000000000000000000000000000000000021
+0000000000000000000000000000000000000000000000000000000000000022
+0000000000000000000000000000000000000000000000000000000000000023
+0000000000000000000000000000000000000000000000000000000000000040
+0000000000000000000000000000000000000000000000000000000000000080
+0000000000000000000000000000000000000000000000000000000000000008
+6162636465666768000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000034
+4142434445464748494a4b4c4d4e4f505152535455565758595a414243444546
+4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000
+	`)
+	type f struct {
+		a uint      `abi:"uint256"`
+		b []uint    `abi:"uint256[]"`
+		c [2]string `abi:"bytes[2]"`
+	}
+	var r f
+	//err := dec.DecodeInto(&r)
+	err := dec.Decode(TUPLE(UINT, SLICE(UINT), ARRAY(BYTES, 2)), &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.a != 7 {
+		t.Errorf("expect %v got %v", 7, r.a)
+	}
+	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
+		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
+	}
+	if !reflect.DeepEqual(r.c, []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
+		t.Errorf("expect %v got %v", []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.c)
+	}
 }

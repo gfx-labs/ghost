@@ -11,6 +11,7 @@ import (
 )
 
 func reflectBigNumeric(t TypeName, ui *big.Int, target reflect.Value) error {
+	fmt.Println(&ui)
 	switch target.Kind() {
 	case reflect.Pointer:
 		if target.Type().AssignableTo(typeBigIntPtr) {
