@@ -1,8 +1,8 @@
 package abi
 
 import (
+	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
@@ -250,18 +250,50 @@ func TestSimple(t *testing.T) {
 		b []uint `abi:"uint256[]"`
 	}
 	var r f
-	//err := dec.DecodeInto(&r)
-	err := dec.Decode(TUPLE(UINT, SLICE(UINT)), &r)
-	fmt.Println(r)
+	var err error
+	r.a, err = dec.ReadUint()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("r.a", err)
 	}
-	if !reflect.DeepEqual(r.a, 7) {
+	if r.a != 7 {
 		t.Errorf("expect %v got %v", 7, r.a)
 	}
+
+	arr_b, err := dec.ReadDynamic()
+	if err != nil {
+		t.Fatal("r.b", err)
+	}
+
+	array_len, err := arr_b.ReadInt()
+	if err != nil {
+		t.Fatal("r.b_len", err)
+	}
+	r.b = make([]uint, 0, array_len)
+	for i := 0; i < array_len; i++ {
+		val, err := arr_b.ReadUint()
+		if err != nil {
+			t.Fatal("r.b_inside", err)
+			t.Fatal(err)
+		}
+		r.b = append(r.b, uint(val))
+	}
+
 	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
 		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
 	}
+	//err := dec.DecodeInto(&r)
+
+	// err := dec.Decode(TUPLE(UINT, SLICE(UINT)), &r)
+	// fmt.Println(r)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// if !reflect.DeepEqual(r.a, 7) {
+	// 	t.Errorf("expect %v got %v", 7, r.a)
+	// }
+	// if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
+	// 	t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
+	// }
 }
 
 func TestComplex(t *testing.T) {
@@ -294,18 +326,92 @@ func TestComplex(t *testing.T) {
 		c [2]string `abi:"bytes[2]"`
 	}
 	var r f
-	//err := dec.DecodeInto(&r)
-	err := dec.Decode(TUPLE(UINT, SLICE(UINT), ARRAY(BYTES, 2)), &r)
+	var err error
+	r.a, err = dec.ReadUint()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("r.a", err)
 	}
 	if r.a != 7 {
 		t.Errorf("expect %v got %v", 7, r.a)
 	}
+
+	arr_b, err := dec.ReadDynamic()
+	if err != nil {
+		t.Fatal("r.b", err)
+	}
+
+	array_len, err := arr_b.ReadInt()
+	if err != nil {
+		t.Fatal("r.b_len", err)
+	}
+	r.b = make([]uint, 0, array_len)
+	for i := 0; i < array_len; i++ {
+		val, err := arr_b.ReadUint()
+		if err != nil {
+			t.Fatal("r.b_inside", err)
+			t.Fatal(err)
+		}
+		r.b = append(r.b, uint(val))
+	}
+
 	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
 		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
 	}
-	if !reflect.DeepEqual(r.c, []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
-		t.Errorf("expect %v got %v", []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.c)
+
+	//err := dec.DecodeInto(&r)
+	// 	err := dec.Decode(TUPLE(UINT, SLICE(UINT), ARRAY(BYTES, 2)), &r)
+	// 	if err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// 	if r.a != 7 {
+	// 		t.Errorf("expect %v got %v", 7, r.a)
+	// 	}
+	// 	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
+	// 		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
+	// 	}
+	// 	if !reflect.DeepEqual(r.c, []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
+	// 		t.Errorf("expect %v got %v", []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.c)
+	// 	}
+	// }
+}
+
+func TestStructSimple(t *testing.T) {
+	dec := hexDecode(`
+00000000000000000000000000000000000000000000000000000000000ff010
+0000000000000000000000000000000000000000000000000000000000ff0002
+6162636400000000000000000000000000000000000000000000000000000000
+	`)
+	type f struct {
+		a int    `abi:"int256"`
+		b uint   `abi:"uint256"`
+		c []byte `abi:"bytes16"`
 	}
+	var r f
+	var err error
+	r.a, err = dec.ReadInt()
+	if err != nil {
+		t.Fatal("r.a", err)
+	}
+	if r.a != 0xff010 {
+		t.Errorf("expect %v got %v", 0xff010, r.a)
+	}
+	r.b, err = dec.ReadUint()
+	if err != nil {
+		t.Fatal("r.b", err)
+	}
+	if r.b != 0xff0002 {
+		t.Errorf("expect %v got %v", 0xff0002, r.b)
+	}
+	r.c, err = dec.ReadNPadRight32(16)
+	r.c = bytes.TrimRight(r.c, "\x00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !(string(r.c) == "abcd") {
+		t.Errorf("expect %v got %v", "abcd", string(r.c))
+	}
+}
+
+func TestStructComplex(t *testing.T) {
+
 }

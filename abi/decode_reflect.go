@@ -19,6 +19,7 @@ type SetStringOk interface {
 	SetString(string, int) bool
 }
 
+// TODO: DONT USE THIS
 func (d *Decoder) DecodeInto(v any) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -32,7 +33,6 @@ func (d *Decoder) DecodeInto(v any) (err error) {
 	if val.Kind() != reflect.Ptr {
 		return fmt.Errorf("abi: expected ptr type to decode into, but got '%v'", val.Kind())
 	}
-	//TODO: smartly pick the type to decode to based on the value of v
 	switch val.Elem().Kind() {
 	case reflect.Ptr:
 		return d.DecodeInto(val.Elem())
@@ -45,6 +45,7 @@ func (d *Decoder) DecodeInto(v any) (err error) {
 	}
 }
 
+// wrapper function
 func (d *Decoder) Decode(t TypeName, v any) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -61,69 +62,31 @@ func (d *Decoder) Decode(t TypeName, v any) (err error) {
 	return d.decode(t, val.Elem())
 }
 
-func (d *Decoder) decodeTuple(t TypeName, st reflect.Value) (err error) {
-	ty := st.Type()
-	switch st.Kind() {
-	case reflect.Slice:
-		for idx, t := range t.TupleArgs() {
-			err := d.decode(t, st.Index(idx))
-			if err != nil {
-				return err
-			}
+// st is a struct
+func (d *Decoder) DecodeTuple(t TypeName, val reflect.Value) (err error) {
+	targs := t.TupleArgs()
+	for i := 0; i < val.NumField(); i++ {
+		err = d.decode(targs[i], reflect.ValueOf(val.Type().Field(i)))
+		if err != nil {
+			return err
 		}
-	case reflect.Struct:
-		args := t.TupleArgs()
-		argidx := 0
-		for i := 0; i < st.NumField(); i++ {
-			fld := ty.Field(i)
-			if fld.Anonymous {
-				t := fld.Type
-				if t.Kind() == reflect.Pointer {
-					t = t.Elem()
-				}
-				if !fld.IsExported() && t.Kind() != reflect.Struct {
-					continue
-				}
-			} else if !fld.IsExported() {
-				continue
-			}
-			tag := fld.Tag.Get("abi")
-			if tag == "-" {
-				continue
-			}
-			name, opts := parseTag(tag)
-			if !isValidTag(name) {
-				name = ""
-			}
-			if opts.Contains("-") {
-				continue
-			}
-			if opts.Contains("topic") {
-				continue
-			}
-			if opts.Contains("arg") {
-				continue
-			}
-			if opts.Contains("method") {
-				continue
-			}
-			if name == "" {
-				if argidx < len(args) {
-					name = string(args[argidx])
-				}
-			}
-			argidx = argidx + 1
-			tfld := st.FieldByName(fld.Name)
-			switch tfld.Kind() {
-			}
-			err := d.decode(TypeName(name), tfld)
-			if err != nil {
-				return err
-			}
-		}
-	default:
-		return fmt.Errorf("cannot unmarshal tuple into %v", st.Kind())
 	}
+
+	return nil
+}
+
+// t = type of array
+// l = length of array
+// tgt has to be a slice or array
+func (d *Decoder) DecodeArray(t TypeName, l int, target reflect.Value) (err error) {
+	ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), l, l)
+	for i := 0; i < l; i++ {
+		err = d.decode(t, ns.Index(i))
+		if err != nil {
+			return err
+		}
+	}
+	target.Set(ns)
 	return nil
 }
 
@@ -134,12 +97,20 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 	st := (string)(t)
 	switch {
 	case t.IsTuple():
-		return dec.decodeTuple(t, target)
+		if target.Kind() != reflect.Struct {
+			return fmt.Errorf("abi: expected struct type to decode tuple into, but got '%v'", target.Kind())
+		}
+		if t.IsDynamic() {
+			// read dynamic offset
+			cur, err2 := dec.ReadDynamic()
+			if err2 != nil {
+				return err2
+			}
+			return cur.DecodeTuple(t, target)
+		}
+		return dec.DecodeTuple(t, target)
 	case t.IsSlice():
-		// is solidity array
-		switch target.Kind() {
-		case reflect.Slice:
-		default:
+		if target.Kind() != reflect.Slice {
 			return fmt.Errorf("cannot decode %s into %v", t, target.Kind())
 		}
 		// read dynamic offset
@@ -147,18 +118,30 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		if err2 != nil {
 			return err2
 		}
-		// read the amount
-		leng, err2 := cur.ReadInt()
+		// read the length
+		l, err2 := cur.ReadInt()
 		if err2 != nil {
 			return err2
 		}
-		ur := t.UnSlice()
-		ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), leng, leng)
-		for i := 0; i < leng; i++ {
-			cur.decode(ur, ns.Index(i))
+		st, _ := t.UnSlice()
+		return cur.DecodeArray(st, l, target)
+	case t.IsFixedSlice():
+		if target.Kind() != reflect.Array {
+			return fmt.Errorf("cannot decode %s into %v", t, target.Kind())
 		}
-		target.Set(ns)
-		return nil
+		// check type, if dynamic or not
+		tn, l := t.UnSlice()
+		if l != target.Len() {
+			return fmt.Errorf("solidity array length mismatch query: %v target: %v", l, target.Len())
+		}
+		if tn.IsDynamic() {
+			cur, err2 := dec.ReadDynamic()
+			if err2 != nil {
+				return err2
+			}
+			return cur.DecodeArray(tn, l, target)
+		}
+		return dec.DecodeArray(tn, l, target)
 	case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):
 		var ui *big.Int
 		var err error

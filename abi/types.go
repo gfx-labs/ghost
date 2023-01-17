@@ -103,8 +103,12 @@ func SLICE(t TypeName) TypeName {
 	return TypeName(t + "[]")
 }
 
-func (t TypeName) UnSlice() TypeName {
-	return TypeName(strings.TrimSuffix(string(t), "[]"))
+func (t TypeName) UnSlice() (TypeName, int) {
+	st := string(t)
+	i := strings.LastIndexByte(st, '[')
+	l, _ := strconv.Atoi(st[i+1 : len(st)-1])
+
+	return TypeName(st[:i]), l
 }
 
 func FIXED(M, N int) TypeName {

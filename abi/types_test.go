@@ -21,6 +21,25 @@ func TestFixedArray(t *testing.T) {
 	assert.True(t, tn.IsDynamic())
 }
 
+func TestUnslice(t *testing.T) {
+	tn1, l1 := SLICE(UINT).UnSlice()
+	assert.EqualValues(t, tn1, "uint256")
+	assert.Equal(t, 0, l1)
+
+	tn2, l2 := ARRAY(UINT, 14).UnSlice()
+	assert.EqualValues(t, tn2, "uint256")
+	assert.Equal(t, 14, l2)
+
+	// nested
+	tn3, l3 := SLICE(ARRAY(BYTES3, 3)).UnSlice()
+	assert.EqualValues(t, tn3, "bytes3[3]")
+	assert.Equal(t, 0, l3)
+
+	tn4, l4 := ARRAY(SLICE(UINT), 4).UnSlice()
+	assert.EqualValues(t, tn4, "uint256[]")
+	assert.Equal(t, 4, l4)
+}
+
 func TestIsDynamic(t *testing.T) {
 	tn := BYTES
 	assert.True(t, tn.IsDynamic())
