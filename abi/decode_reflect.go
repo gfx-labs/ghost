@@ -45,6 +45,35 @@ func (d *Decoder) DecodeInto(v any) (err error) {
 	}
 }
 
+func CreateTypeName(v any) TypeName {
+	val := reflect.ValueOf(v)
+	switch val.Kind() {
+	case reflect.Slice:
+		return SLICE(CreateTypeName(val.Elem()))
+	case reflect.Array:
+		return ARRAY(CreateTypeName(val.Elem()), val.Len())
+	case reflect.Struct:
+		var args []TypeName
+		for i := 0; i < val.NumField(); i++ {
+			args[i] = CreateTypeName(val.Field(i))
+		}
+		return TUPLE(args...)
+	case reflect.Func:
+		return FUNCTION
+	case reflect.Bool:
+		return BOOL
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		// if there is a struct tag, use it
+
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.String:
+		return STRING
+	default:
+		return NIL
+	}
+	return NIL
+}
+
 // wrapper function
 func (d *Decoder) Decode(t TypeName, v any) (err error) {
 	defer func() {
@@ -59,14 +88,17 @@ func (d *Decoder) Decode(t TypeName, v any) (err error) {
 	if val.Kind() != reflect.Ptr {
 		return fmt.Errorf("abi: expected ptr type to decode into, but got '%v'", val.Kind())
 	}
-	return d.decode(t, val.Elem())
+	return d.DecodeTuple(t, val.Elem())
 }
 
-// st is a struct
+// val is type struct
 func (d *Decoder) DecodeTuple(t TypeName, val reflect.Value) (err error) {
 	targs := t.TupleArgs()
+	//fmt.Println(targs)
 	for i := 0; i < val.NumField(); i++ {
-		err = d.decode(targs[i], reflect.ValueOf(val.Type().Field(i)))
+		//fmt.Printf("%v: %s\n", i, targs[i])
+		//fmt.Printf("before value %v kind %v type %v\n", val.Field(i), val.Field(i).Kind(), val.Field(i).Type())
+		err = d.decode(targs[i], val.Field(i))
 		if err != nil {
 			return err
 		}
@@ -78,15 +110,17 @@ func (d *Decoder) DecodeTuple(t TypeName, val reflect.Value) (err error) {
 // t = type of array
 // l = length of array
 // tgt has to be a slice or array
-func (d *Decoder) DecodeArray(t TypeName, l int, target reflect.Value) (err error) {
-	ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), l, l)
+func (d *Decoder) DecodeArray(t TypeName, l int, tgt reflect.Value) (err error) {
+	if l > tgt.Len() {
+		s := reflect.MakeSlice(tgt.Type(), l-tgt.Len(), l-tgt.Len())
+		tgt.Set(reflect.AppendSlice(tgt, s))
+	}
 	for i := 0; i < l; i++ {
-		err = d.decode(t, ns.Index(i))
+		err = d.decode(t, tgt.Index(i))
 		if err != nil {
 			return err
 		}
 	}
-	target.Set(ns)
 	return nil
 }
 
@@ -110,8 +144,9 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		}
 		return dec.DecodeTuple(t, target)
 	case t.IsSlice():
+		fmt.Printf("%s, %v\n", t, target)
 		if target.Kind() != reflect.Slice {
-			return fmt.Errorf("cannot decode %s into %v", t, target.Kind())
+			return fmt.Errorf("cannot decode %s into %v", t, target.Type())
 		}
 		// read dynamic offset
 		cur, err2 := dec.ReadDynamic()
@@ -124,6 +159,7 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 			return err2
 		}
 		st, _ := t.UnSlice()
+		fmt.Printf("%s %v %v\n", st, l, target)
 		return cur.DecodeArray(st, l, target)
 	case t.IsFixedSlice():
 		if target.Kind() != reflect.Array {

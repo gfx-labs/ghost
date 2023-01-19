@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -201,4 +202,17 @@ func reflectFixedBytes(t TypeName, addr []byte, target reflect.Value) error {
 		return fmt.Errorf("could not decode %v into %v", addr, target.Type())
 	}
 	return nil
+}
+
+func hexDecode(s string) *Decoder {
+	s = strings.TrimPrefix(s, "0x")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, `	`, "")
+	ans, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return NewDecoder(ans)
 }
