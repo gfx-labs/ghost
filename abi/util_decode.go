@@ -11,6 +11,17 @@ import (
 	"github.com/holiman/uint256"
 )
 
+type IntSet interface {
+	Set(*big.Int) *big.Int
+}
+type SetStringErr interface {
+	SetString(string, int) error
+}
+
+type SetStringOk interface {
+	SetString(string, int) bool
+}
+
 func reflectBigNumeric(t TypeName, ui *big.Int, target reflect.Value) error {
 	switch target.Kind() {
 	case reflect.Pointer:

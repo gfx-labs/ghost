@@ -130,11 +130,11 @@ func (d *Builder) EnterTuple() *Builder {
 
 // fixed size array
 // TODO: write in a type + size compliance check later
-func (d *Builder) EnterArray(t TypeName, l uint) *Builder {
+func (d *Builder) EnterArray(t TypeName, l int) *Builder {
 	if t.IsDynamic() {
-		return d.EnterGroup(int(l), false)
+		return d.EnterGroup(l, false)
 	}
-	return d.EnterGroup(-int(l), false)
+	return d.EnterGroup(-l, false)
 }
 
 // exit dynamic element
