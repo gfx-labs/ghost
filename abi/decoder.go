@@ -161,6 +161,7 @@ func (d *Decoder) ReadUint16() (uint16, error) {
 
 func (d *Decoder) ReadDynamic() (*Decoder, error) {
 	offset, err := d.ReadBigUint()
+	//fmt.Println(offset)
 	if err != nil {
 		return nil, err
 	}

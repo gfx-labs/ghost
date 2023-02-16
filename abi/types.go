@@ -14,12 +14,12 @@ func (t TypeName) IsSlice() bool {
 }
 
 func (t TypeName) IsFixedSlice() bool {
-	match, _ := regexp.MatchString("([a-z]+)\\[[0-9]+\\]", string(t))
+	match, _ := regexp.MatchString(".*\\[[0-9]+\\]", string(t))
 	return match
 }
 
 func (t TypeName) IsTuple() bool {
-	return strings.HasPrefix(string(t), "(")
+	return strings.HasPrefix(string(t), "(") && strings.HasSuffix(string(t), ")")
 }
 
 func (t TypeName) IsSimple() bool {

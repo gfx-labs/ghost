@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// TODO: DONT USE THIS
+// TODO: TEST THIS
 func (d *Decoder) DecodeInto(v any) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -22,27 +22,24 @@ func (d *Decoder) DecodeInto(v any) (err error) {
 	if val.Kind() != reflect.Ptr {
 		return fmt.Errorf("abi: expected ptr type to decode into, but got '%v'", val.Kind())
 	}
-	// switch val.Elem().Kind() {
-	// case reflect.Ptr:
-	// 	return d.DecodeInto(val.Elem())
-	// case reflect.Slice:
-	// 	return d.decode(SLICE(BYTES32), val.Elem())
-	// case reflect.Struct:
-	// 	return d.decode(TUPLE(), val.Elem())
-	// default:
-	// 	return d.decode(BYTES32, val.Elem())
-	// }
+	val = val.Elem()
+	tn := CreateTypeName(val)
+	if val.Kind() == reflect.Struct {
+		return d.Decode(v, tn.TupleArgs()...)
+	}
+	return d.Decode(v, tn)
 }
 
-func CreateTypeName(v any) TypeName {
-	val := reflect.ValueOf(v)
+func CreateTypeName(val reflect.Value) TypeName {
 	switch val.Kind() {
+	case reflect.Pointer:
+		return CreateTypeName(val.Elem())
 	case reflect.Slice:
 		return SLICE(CreateTypeName(val.Elem()))
 	case reflect.Array:
 		return ARRAY(CreateTypeName(val.Elem()), val.Len())
 	case reflect.Struct:
-		var args []TypeName
+		args := make([]TypeName, val.NumField())
 		for i := 0; i < val.NumField(); i++ {
 			tag := val.Type().Field(i).Tag.Get("abi")
 			if tag != "" {
@@ -67,7 +64,6 @@ func CreateTypeName(v any) TypeName {
 	default:
 		return NIL
 	}
-	return NIL
 }
 
 func (d *Decoder) DecodeIntoHelper(v reflect.Value) (err error) {
@@ -109,10 +105,10 @@ func (d *Decoder) Decode(v any, args ...TypeName) (err error) {
 		return err
 	}
 	val := reflect.ValueOf(v)
+	val = reflect.Indirect(val)
 	if !val.CanAddr() || !val.CanSet() {
 		return fmt.Errorf("%v cannot be set or addressed", val.Kind())
 	}
-	val = reflect.Indirect(val)
 	switch len(args) {
 	case 0:
 		return fmt.Errorf("Nothing to decode")
@@ -122,7 +118,15 @@ func (d *Decoder) Decode(v any, args ...TypeName) (err error) {
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())
 		}
-		return d.decode(TUPLE(args...), val)
+		//return d.decode(TUPLE(args...), val)
+		for i := 0; i < len(args); i++ {
+			//fmt.Printf("%v -> %v\n", args[i], val.Field(i))
+			err = d.decode(args[i], val.Field(i))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 }
 
@@ -164,7 +168,7 @@ func (d *Decoder) DecodeArray(t TypeName, l int, v reflect.Value) (err error) {
 // implement map, which should populate m[0], m[1]... etc
 // decode takes in a reflect.Value that points to the actual thing.
 func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
-	st := (string)(t)
+	st := string(t)
 	switch {
 	case t.IsTuple():
 		if target.Kind() != reflect.Struct {
@@ -180,22 +184,17 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 		}
 		return dec.DecodeTuple(t, target)
 	case t.IsSlice():
-		fmt.Printf("%s, %v\n", t, target)
+		//fmt.Printf("%s, %v\n", t, target)
 		if target.Kind() != reflect.Slice {
 			return fmt.Errorf("cannot decode %s into %v", t, target.Type())
 		}
 		// read dynamic offset
-		cur, err2 := dec.ReadDynamic()
-		if err2 != nil {
-			return err2
-		}
-		// read the length
-		l, err2 := cur.ReadInt()
+		cur, l, err2 := dec.ReadDynamicLength()
 		if err2 != nil {
 			return err2
 		}
 		st, _ := t.UnSlice()
-		fmt.Printf("%s %v %v\n", st, l, target)
+		//fmt.Printf("%s %v %v\n", st, l, target)
 		return cur.DecodeArray(st, l, target)
 	case t.IsFixedSlice():
 		if target.Kind() != reflect.Array {
@@ -246,26 +245,27 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 			return err
 		}
 		return reflectBool(t, bl, target)
-	case t == STRING:
+	case t == STRING || t == BYTES:
 		str, err := dec.ReadString()
 		if err != nil {
 			return err
 		}
 		return reflectString(t, str, target)
-	case t == BYTES:
-		sub, err := dec.ReadDynamic()
-		if err != nil {
-			return err
-		}
-		l, err := sub.ReadInt()
-		if err != nil {
-			return err
-		}
-		bts, err := sub.ReadN(l)
-		if err != nil {
-			return err
-		}
-		return reflectDynamicBytes(t, bts, target)
+	//case t == BYTES:
+	// sub, err := dec.ReadDynamic()
+	// if err != nil {
+	// 	return err
+	// }
+	// l, err := sub.ReadInt()
+	// if err != nil {
+	// 	return err
+	// }
+	// bts, err := sub.ReadN(l)
+	// if err != nil {
+	// 	return err
+	// }
+	// return reflectDynamicBytes(t, bts, target)
+
 	case strings.HasPrefix(st, "bytes") || t == FUNCTION:
 		var amt int
 		var err error

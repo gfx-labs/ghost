@@ -12,7 +12,33 @@ import (
 )
 
 func (b *Builder) Encode(v any, args ...TypeName) (err error) {
-	return nil
+	defer func() {
+		if err2 := recover(); err2 != nil {
+			err = fmt.Errorf("panic while decoding: %v", err2)
+		}
+	}()
+	if err != nil {
+		return err
+	}
+	val := reflect.ValueOf(v)
+	val = reflect.Indirect(val)
+	switch len(args) {
+	case 0:
+		return fmt.Errorf("Nothing to encode")
+	case 1:
+		return b.encode(args[0], val)
+	default:
+		if val.Kind() != reflect.Struct {
+			return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())
+		}
+		for i := 0; i < len(args); i++ {
+			err = b.encode(args[i], val.Field(i))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 func (b *Builder) EncodeArray(t TypeName, l int, v reflect.Value) (err error) {

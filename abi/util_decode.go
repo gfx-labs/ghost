@@ -185,7 +185,6 @@ func reflectDynamicBytes(t TypeName, str []byte, target reflect.Value) error {
 }
 
 func reflectFixedBytes(t TypeName, addr []byte, target reflect.Value) error {
-
 	switch target.Kind() {
 	case reflect.String:
 		target.SetString(hex.EncodeToString(addr))

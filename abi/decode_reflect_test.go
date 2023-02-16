@@ -1,10 +1,12 @@
 package abi
 
 import (
-	"bytes"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBasicTypeReflect(t *testing.T) {
@@ -14,11 +16,11 @@ func TestBasicTypeReflect(t *testing.T) {
 	One := &big.Int{}
 	var Two bool
 
-	err := dec.Decode(INT192, One)
+	err := dec.Decode(One, INT192)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = dec.Decode(BOOL, &Two)
+	err = dec.Decode(&Two, BOOL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +87,7 @@ func TestDynamicTypeNameReflect(t *testing.T) {
 		D string
 	}
 	var r f
-	err := dec.Decode(TUPLE(INT64, SLICE(UINT64), BYTES10, STRING), &r)
+	err := dec.Decode(&r, INT64, SLICE(UINT64), BYTES10, STRING)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +119,7 @@ func TestSimpleReflect(t *testing.T) {
 		B []uint `abi:"uint256[]"`
 	}
 	var r f
-	err := dec.Decode(TUPLE(UINT, SLICE(UINT)), &r)
+	err := dec.Decode(&r, UINT, SLICE(UINT))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +131,7 @@ func TestSimpleReflect(t *testing.T) {
 	}
 }
 
-func TestComplex(t *testing.T) {
+func TestComplexReflect(t *testing.T) {
 	// 7, 0x60, 7 * 0x20,
 	// 		// b
 	// 		3, 0x21, 0x22, 0x23,
@@ -154,97 +156,117 @@ func TestComplex(t *testing.T) {
 4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000
 	`)
 	type f struct {
-		a uint      `abi:"uint256"`
-		b []uint    `abi:"uint256[]"`
-		c [2]string `abi:"bytes[2]"`
+		A uint      `abi:"uint256"`
+		B []uint    `abi:"uint256[]"`
+		C [2]string `abi:"bytes[2]"`
 	}
 	var r f
-	var err error
-	r.a, err = dec.ReadUint()
-	if err != nil {
-		t.Fatal("r.a", err)
-	}
-	if r.a != 7 {
-		t.Errorf("expect %v got %v", 7, r.a)
-	}
-
-	arr_b, err := dec.ReadDynamic()
-	if err != nil {
-		t.Fatal("r.b", err)
-	}
-
-	array_len, err := arr_b.ReadInt()
-	if err != nil {
-		t.Fatal("r.b_len", err)
-	}
-	r.b = make([]uint, 0, array_len)
-	for i := 0; i < array_len; i++ {
-		val, err := arr_b.ReadUint()
-		if err != nil {
-			t.Fatal("r.b_inside", err)
-			t.Fatal(err)
-		}
-		r.b = append(r.b, uint(val))
-	}
-
-	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
-		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
-	}
-
-	//err := dec.DecodeInto(&r)
-	// 	err := dec.Decode(TUPLE(UINT, SLICE(UINT), ARRAY(BYTES, 2)), &r)
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// 	if r.a != 7 {
-	// 		t.Errorf("expect %v got %v", 7, r.a)
-	// 	}
-	// 	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
-	// 		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
-	// 	}
-	// 	if !reflect.DeepEqual(r.c, []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
-	// 		t.Errorf("expect %v got %v", []string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.c)
-	// 	}
-	// }
-}
-
-func TestStructSimple(t *testing.T) {
-	dec := hexDecode(`
-00000000000000000000000000000000000000000000000000000000000ff010
-0000000000000000000000000000000000000000000000000000000000ff0002
-6162636400000000000000000000000000000000000000000000000000000000
-	`)
-	type f struct {
-		a int    `abi:"int256"`
-		b uint   `abi:"uint256"`
-		c []byte `abi:"bytes16"`
-	}
-	var r f
-	var err error
-	r.a, err = dec.ReadInt()
-	if err != nil {
-		t.Fatal("r.a", err)
-	}
-	if r.a != 0xff010 {
-		t.Errorf("expect %v got %v", 0xff010, r.a)
-	}
-	r.b, err = dec.ReadUint()
-	if err != nil {
-		t.Fatal("r.b", err)
-	}
-	if r.b != 0xff0002 {
-		t.Errorf("expect %v got %v", 0xff0002, r.b)
-	}
-	r.c, err = dec.ReadNPadRight32(16)
-	r.c = bytes.TrimRight(r.c, "\x00")
+	err := dec.Decode(&r, UINT, SLICE(UINT), ARRAY(BYTES, 2))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !(string(r.c) == "abcd") {
-		t.Errorf("expect %v got %v", "abcd", string(r.c))
+	if r.A != 7 {
+		t.Errorf("expect %v got %v", 7, r.A)
+	}
+	if !reflect.DeepEqual(r.B, []uint{0x21, 0x22, 0x23}) {
+		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.B)
+	}
+	if !reflect.DeepEqual(r.C, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
+		t.Errorf("expect %v got %v", [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.C)
 	}
 }
 
 func TestStructComplex(t *testing.T) {
+	// 7, 0x80, 0x1e0, 8,
+	// 0x40,
+	// 0x100,
+	// m_contractAddress,
+	// 0x40,
+	// 1, // length
+	// 0x11, 1, 0x12,
+	// 0, 0x40,
+	// 0,
+	// 2, // length
+	// 0x40, 0xa0,
+	// 0, 0x40, 0,
+	// 0x1234, 0x40,
+	// 3, // length
+	// 0, 0, 0,
+	// 0x21, 2, 0x22,
+	// 0, 0, 0
+	dec := hexDecode(`
+0000000000000000000000000000000000000000000000000000000000000007
+0000000000000000000000000000000000000000000000000000000000000080
+00000000000000000000000000000000000000000000000000000000000001e0
+0000000000000000000000000000000000000000000000000000000000000008
+0000000000000000000000000000000000000000000000000000000000000040
+0000000000000000000000000000000000000000000000000000000000000100
+000000000000000000000000001d3f1ef827552ae1114027bd3ecf1f086ba0f9
+0000000000000000000000000000000000000000000000000000000000000040
+0000000000000000000000000000000000000000000000000000000000000001
+0000000000000000000000000000000000000000000000000000000000000011
+0000000000000000000000000000000000000000000000000000000000000001
+0000000000000000000000000000000000000000000000000000000000000012
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000040
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000002
+0000000000000000000000000000000000000000000000000000000000000040
+00000000000000000000000000000000000000000000000000000000000000a0
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000040
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000001234
+0000000000000000000000000000000000000000000000000000000000000040
+0000000000000000000000000000000000000000000000000000000000000003
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000021
+0000000000000000000000000000000000000000000000000000000000000002
+0000000000000000000000000000000000000000000000000000000000000022
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000`)
+	type Q struct {
+		X uint
+		E uint8
+		Y uint8
+	}
+	type S struct {
+		C string //address
+		T []Q
+	}
+	type f struct {
+		A  uint
+		S1 [2]S
+		S2 []S
+		B  uint
+	}
+	var r f
+	err := dec.Decode(&r, UINT, ARRAY(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8))), 2), SLICE(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8)))), UINT)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// r.A
+	assert.Equal(t, uint(7), r.A)
+	// r.S1[0]
+	assert.Equal(t, common.HexToAddress("0x001d3f1ef827552ae1114027bd3ecf1f086ba0f9").Hex(), r.S1[0].C)
+	assert.Equal(t, Q{0x11, 1, 0x12}, r.S1[0].T[0])
+	// r.S1[1]
+	assert.Equal(t, common.HexToAddress("0x0").Hex(), r.S1[1].C)
+	assert.Empty(t, r.S1[1].T)
 
+	assert.Equal(t, 2, len(r.S2))
+	// r.S2[0]
+	assert.Equal(t, common.HexToAddress("0x0").Hex(), r.S2[0].C)
+	assert.Empty(t, r.S2[0].T)
+	// r.S2[1]
+	assert.Equal(t, common.HexToAddress("0x1234").Hex(), r.S2[1].C)
+	assert.Equal(t, 3, len(r.S2[1].T))
+	assert.Equal(t, Q{0, 0, 0}, r.S2[1].T[0])
+	assert.Equal(t, Q{0x21, 2, 0x22}, r.S2[1].T[1])
+	assert.Equal(t, Q{0, 0, 0}, r.S2[1].T[2])
+	// r.B
+	assert.Equal(t, uint(8), r.B)
 }
