@@ -8,9 +8,7 @@ import (
 )
 
 func main() {
-
 	c, _ := copypasta.Dial("https://mainnet.rpc.gfx.xyz")
 	app := cli.NewCli(c)
 	app.Run(os.Args)
-
 }

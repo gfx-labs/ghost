@@ -84,7 +84,7 @@ func (c ContractInteractor) RunCall(sig abi.Signature, params ...string) error {
 			if len(params) < argz.Len() {
 				return fmt.Errorf("Too many arguments, Wanted %d got %d", len(params), argz.Len())
 			}
-			b := abi.NewBuilder(sig.SelectorB())
+			b := new(abi.Builder)
 			for idx, typ := range params {
 				p := argz.Get(idx)
 				switch {
@@ -117,7 +117,7 @@ func (c ContractInteractor) RunCall(sig abi.Signature, params ...string) error {
 			}
 			ans, err := c.c.CallContract(ctx.Context, ethereum.CallMsg{
 				To:   &c.addr,
-				Data: b.Finish(),
+				Data: append(sig.SelectorB(), b.Finish()...),
 			}, nil)
 			if err != nil {
 				return err
