@@ -4,8 +4,8 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func (s *Stack) LogN(idx int) error {
-	topics := make([]uint256.Int, idx)
+func (s *InstructionSet) LogN(idx int) error {
+	topics := make([]*uint256.Int, idx)
 	for i := 2; i < (idx + 2); i++ {
 		topics[i-2] = s.s[i]
 	}

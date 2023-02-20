@@ -16,7 +16,6 @@ require (
 require (
 	gfx.cafe/util/go/bufpool v0.0.0-20221221002138-cc76846e2979 // indirect
 	gfx.cafe/util/go/frand v0.0.0-20221221002138-cc76846e2979 // indirect
-	git.tuxpa.in/a/zlog v1.32.0 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
@@ -29,7 +28,6 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/jawher/mow.cli v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.13 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

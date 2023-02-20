@@ -1,5 +1,12 @@
 package evm
 
-// an EVM is a snapshot of the EVM at some state, used to perform computations
-type EVM struct {
+type EVMv0 struct {
+}
+
+func Execute(s *InstructionSet) error {
+	contractCreation := s.ctx.Msg().To() == nil
+	if contractCreation {
+		return s.ctx.CreateContract()
+	}
+	return nil
 }
