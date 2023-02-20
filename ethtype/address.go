@@ -23,8 +23,8 @@ var addressT = reflect.TypeOf(Address{})
 func (a Address) Bytes() []byte { return a[:] }
 
 // Hash converts an address to a hash by left-padding it with zeros.
-func (a Address) Word() uint256.Int {
-	w := uint256.Int{}
+func (a Address) Word() *uint256.Int {
+	w := &uint256.Int{}
 	w.SetBytes(a.Bytes())
 	return w
 }

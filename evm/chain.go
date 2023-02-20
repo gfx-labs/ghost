@@ -18,10 +18,28 @@ type Contract interface {
 	WriteStorage(Word, Word) error
 }
 
-// callcontext contains the chain information neccesary for processing a call
+// Message represents a message sent to a contract.
+type Message interface {
+	From() Address
+	To() *Address
+
+	GasPrice() Word
+	GasFeeCap() Word
+	GasTipCap() Word
+	Gas() uint64
+	Value() Word
+
+	Nonce() uint64
+	IsFake() bool
+	Data() []byte
+	AccessList() AccessList
+}
+
+// Engine is an interface used to execute a stack
 // is also is what holds all the memory and call data, and is ultimately responsible for
 // obtaining the post execution state
-type CallContext interface {
+type Engine interface {
+	CreateContract() error
 	// the calldata. returns nil when empty
 	CallData(idx uint64) Word
 	CallDataSize() Word
@@ -60,32 +78,21 @@ type CallContext interface {
 	Balance(target Address) Word
 
 	// the following fields should be passed to the execution context
-	Txn() *Call
+	Msg() Message
 	// input 0 should return the current block
 	// input 1 should return the previous block
-	Block(Word) *Block
+	Block(Word) Block
 }
 
-type Block struct {
-	ParentHash  Word        `json:"parentHash"       gencodec:"required"`
-	UncleHash   Word        `json:"sha3Uncles"       gencodec:"required"`
-	Coinbase    Address     `json:"miner"`
-	Root        Word        `json:"stateRoot"        gencodec:"required"`
-	TxHash      Word        `json:"transactionsRoot" gencodec:"required"`
-	ReceiptHash Word        `json:"receiptsRoot"     gencodec:"required"`
-	Bloom       bloom.Bloom `json:"logsBloom"        gencodec:"required"`
-	Difficulty  *big.Int    `json:"difficulty"       gencodec:"required"`
-	Number      *big.Int    `json:"number"           gencodec:"required"`
-	GasLimit    uint64      `json:"gasLimit"         gencodec:"required"`
-	GasUsed     uint64      `json:"gasUsed"          gencodec:"required"`
-	Time        uint64      `json:"timestamp"        gencodec:"required"`
-	Extra       []byte      `json:"extraData"        gencodec:"required"`
-	MixDigest   Word        `json:"mixHash"`
-	Nonce       uint64      `json:"nonce"`
-	ChainID     Word
-
-	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
-	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
+type Block interface {
+	Coinbase() Address
+	Hash() Word
+	Difficulty() *big.Int
+	Number() *big.Int
+	GasLimit() uint64
+	GasUsed() uint64
+	Time() uint64
+	ChainID() Word
 }
 
 type Receipt struct {
@@ -158,18 +165,4 @@ func LogsBloom(logs []*Log) []byte {
 		}
 	}
 	return bin[:]
-}
-
-type Call struct {
-	ChainID    Word
-	AccessList AccessList
-	Data       []byte
-	Gas        uint64
-	GasPrice   Word
-	GasTipCap  Word
-	GasFeeCap  Word
-	Value      Word
-	Nonce      uint64
-	From       Address
-	To         Address
 }

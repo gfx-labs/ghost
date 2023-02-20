@@ -8,7 +8,7 @@ import (
 )
 
 func TestPushBytes(t *testing.T) {
-	stack := &Stack{}
+	stack := &InstructionSet{}
 	stack.PushN(32, uint256.NewInt(8))
 	stack.PushN(32, uint256.NewInt(8))
 	stack.PushN(32, uint256.NewInt(8))
