@@ -42,23 +42,27 @@ func NewCli(g ghost.Client) *cli.App {
 				UsageText: "spook disasm [file]",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:        "swarm",
-						DefaultText: "whether or not to deal with the swarm hash",
+						Name:  "swarm",
+						Usage: "whether or not to deal with the swarm hash",
+						Value: false,
 					},
 					&cli.BoolFlag{
-						Name:        "constructor",
-						DefaultText: "whether or not the constructor is included in input",
-						Aliases:     []string{"ctor"},
+						Name:    "constructor",
+						Usage:   "whether or not the constructor is included in input",
+						Aliases: []string{"ctor"},
+						Value:   false,
 					},
 					&cli.BoolFlag{
-						Name:        "logging",
-						DefaultText: "enable logging",
-						Aliases:     []string{"log"},
+						Name:    "logging",
+						Usage:   "enable logging",
+						Aliases: []string{"log"},
+						Value:   false,
 					},
 					&cli.BoolFlag{
-						Name:        "binary",
-						DefaultText: "binary input",
-						Aliases:     []string{"bin"},
+						Name:    "binary",
+						Usage:   "binary input",
+						Aliases: []string{"bin"},
+						Value:   false,
 					},
 				},
 				Action: func(ctx *cli.Context) error {
