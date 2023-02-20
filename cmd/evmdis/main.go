@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 
+	"gfx.cafe/open/ghost/evm"
 	"gfx.cafe/open/ghost/evmdis"
 )
 
@@ -101,7 +102,7 @@ func FindNextCodeEntryPoint(program *evmdis.Program) uint64 {
 	var lastPos uint64 = 0
 	for _, block := range program.Blocks {
 		for _, instruction := range block.Instructions {
-			if instruction.Op == evmdis.CODECOPY {
+			if instruction.Op == evm.CODECOPY {
 				var expression evmdis.Expression
 
 				instruction.Annotations.Get(&expression)
