@@ -220,23 +220,29 @@ func TestStruct2(t *testing.T) {
 	b := &Builder{}
 	ans := b.
 		WriteUint(7).
-		EnterArray(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT, UINT))), 2).
+		EnterArray(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8))), 2).
 		EnterTuple().WriteAddress(common.HexToAddress("0x5678")).
-		EnterArray(TUPLE(UINT, UINT, UINT8), 1).WriteUint(0x11).WriteUint(1).WriteUint8(0x12).Exit().
+		EnterDynamicArray().EnterTuple().WriteUint(0x11).WriteUint8(1).WriteUint8(0x12).Exit().Exit().
 		Exit().
-		EnterTuple().WriteAddress(common.HexToAddress("0x0")).EnterDynamicArray().EnterTuple().Exit().Exit().Exit().
+		EnterTuple().WriteAddress(common.HexToAddress("0x0")).
+		EnterDynamicArray().Exit().Exit().
+		Exit().
+		EnterDynamicArray().
+		EnterTuple().WriteAddress(common.HexToAddress("0x0")).
+		EnterDynamicArray().Exit().Exit().
 		EnterTuple().WriteAddress(common.HexToAddress("0x1234")).
-		EnterArray(TUPLE(UINT, UINT, UINT8), 3).
+		EnterDynamicArray().
 		EnterTuple().WriteUint(0).WriteUint(0).WriteUint(0).Exit().
-		EnterTuple().WriteUint(0x21).WriteUint(0).WriteUint8(0x22).Exit().
+		EnterTuple().WriteUint(0x21).WriteUint8(2).WriteUint8(0x22).Exit().
 		EnterTuple().WriteUint(0).WriteUint(0).WriteUint(0).Exit().
 		Exit().Exit().
+		Exit().
 		WriteUint(8).
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000080
-00000000000000000000000000000000000000000000000000000000000001e8
+00000000000000000000000000000000000000000000000000000000000001e0
 0000000000000000000000000000000000000000000000000000000000000008
 0000000000000000000000000000000000000000000000000000000000000040
 0000000000000000000000000000000000000000000000000000000000000100

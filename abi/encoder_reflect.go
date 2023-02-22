@@ -59,13 +59,6 @@ func (b *Builder) EncodeArray(t TypeName, l int, v reflect.Value) (err error) {
 // t = function signature
 // v = contains the values to encode
 func (b *Builder) encode(t TypeName, v reflect.Value) error {
-	// switch v.Kind() {
-	// case reflect.Array:
-	// case reflect.Slice:
-	// case reflect.Struct:
-	// case reflect.Bool:
-
-	// }
 	st := string(t)
 	switch {
 	case t.IsTuple():
@@ -110,12 +103,8 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 		cur.Exit()
 		return nil
 	case t == ADDRESS:
-		// if v.Type().String() != "common.Address" {
-		// 	return fmt.Errorf("could not encode address")
-		// }
-		// TODO: put in a check
-		b.WriteAddress(common.HexToAddress(v.String()))
-		return nil
+		err := b.encodeReflectAddress(v)
+		return err
 	case t == BOOL:
 		b.WriteBool(v.Bool())
 		return nil
@@ -178,6 +167,19 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 	default:
 		return fmt.Errorf("encountered unknown type: %s", st)
 	}
+}
+
+func (b *Builder) encodeReflectAddress(v reflect.Value) error {
+	var addr common.Address
+	switch v.Kind() {
+	case reflect.String:
+		addr = common.HexToAddress(v.String())
+	case reflect.Slice, reflect.Array:
+		addr = common.BytesToAddress(v.Elem().Bytes())
+	default:
+		return fmt.Errorf("could not encode %v into %v", v.Type(), addr)
+	}
+	return nil
 }
 
 // func (b *Builder) WriteNumberReflect(v reflect.Value) error {

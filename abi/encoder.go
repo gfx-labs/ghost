@@ -100,16 +100,21 @@ func (d *Builder) EnterGroup(l int, w bool) *Builder {
 		loc:    d.Mem().Pos(0),
 		len:    l,
 		NewMem: d.NewMem,
-		write:  w,
+		write:  w, // whether to write length
 	}
 	d.children = append(d.children, c)
 	if l >= 0 { // is dynamic
 		wd := [32]byte{} // insert offset placeholder
 		d.Mem().Put(-1, wd[:])
-		if d.len < 0 { // parent is static
+		d.rlen -= 1
+		if d.len == -1 { // parent is static tuple
 			d.len = 0
-			b := d
-			for b.parent != nil {
+			if d.parent != nil {
+				d.parent.Mem().Insert(d.loc, wd[:])
+				d.parent.rlen = d.parent.rlen - 1
+			}
+			b := d.parent
+			for b.parent != nil && b.parent.len == -1 {
 				b.parent.Mem().Insert(b.loc, wd[:])
 				b.parent.rlen = b.parent.rlen - 1
 				b = b.parent
@@ -181,10 +186,10 @@ func (d *Builder) Finish() []byte {
 	if d.len == 0 {
 		d.len = len(d.Mem().Data())/lnlen + len(d.children) + d.rlen
 	}
-	if d.len > 0 { // dynamic element, need to write offset
+	if d.len >= 0 { // dynamic element, need to write offset
 		xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
 		d.parent.Mem().Put(d.loc, xs[:])
-		d.parent.rlen -= 1
+		//d.parent.rlen -= 1
 		if d.write {
 			d.parent.WriteInt(d.len) // how many elements in the dynamic
 			d.parent.rlen -= 1
