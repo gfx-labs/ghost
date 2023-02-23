@@ -114,7 +114,7 @@ func (d *Builder) EnterGroup(l int, w bool) *Builder {
 				d.parent.rlen = d.parent.rlen - 1
 			}
 			b := d.parent
-			for b.parent != nil && b.parent.len == -1 {
+			for b.parent != nil && b.parent.len < 0 {
 				b.parent.Mem().Insert(b.loc, wd[:])
 				b.parent.rlen = b.parent.rlen - 1
 				b = b.parent
