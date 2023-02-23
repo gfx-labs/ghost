@@ -52,23 +52,6 @@ func (m *memory) Insert(loc int, data []byte) {
 	m.Pos(len(data))
 }
 
-/*
-func (m *memory) WriteStatic(data []byte) {
-	var s []byte
-	if loc == 0 {
-		s = data
-	} else {
-		s = append(m.encoded[:loc], data...)
-	}
-	if loc == len(m.encoded) {
-		m.encoded = s
-	} else {
-		m.encoded = append(s, m.encoded[loc:]...)
-	}
-	m.Pos(len(data))
-}
-*/
-
 // replaces data at the location
 func (m *memory) Put(loc int, data []byte) {
 	if loc == -1 {
