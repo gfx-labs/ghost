@@ -45,6 +45,7 @@ func TestEncodeDynamicSimple(t *testing.T) {
 000000000000000000000000000000000000000000000000000000000000007b
 000000000000000000000000000000000000000000000000000000000000007c`, PrettyHex(ans))
 }
+
 func TestEncodeDynamicComplex(t *testing.T) {
 	b := &Builder{}
 	ans := b.
