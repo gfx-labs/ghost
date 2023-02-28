@@ -4,11 +4,11 @@ go 1.18
 
 require (
 	gfx.cafe/open/goutil v1.9.7
-	gfx.cafe/open/jrpc v0.0.61
+	gfx.cafe/open/jrpc v0.1.2
 	gfx.cafe/util/go/generic v0.0.0-20230121041905-80dafb1e973e
-	github.com/ethereum/go-ethereum v1.11.1
+	github.com/ethereum/go-ethereum v1.11.2
 	github.com/holiman/uint256 v1.2.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/urfave/cli/v2 v2.24.4
 	golang.org/x/crypto v0.6.0
 )
@@ -29,7 +29,7 @@ require (
 	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.15.15 // indirect
+	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
