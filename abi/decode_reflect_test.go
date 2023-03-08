@@ -34,12 +34,14 @@ func TestBasicTypeReflect(t *testing.T) {
 }
 
 func TestAddressReflect(t *testing.T) {
-	dec := hexDecode(`0000000000000000000000000000000000000000000000000000000000001234`)
-	var add common.Address
-	err := dec.Decode(&add, ADDRESS)
+	dec := hexDecode(
+		`0000000000000000000000000000000000000000000000000000000000001234`)
+	var addr common.Address
+	err := dec.Decode(&addr, ADDRESS)
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(t, common.HexToAddress("0x1234"), addr)
 }
 
 func TestDynamicReflect(t *testing.T) {
@@ -142,12 +144,12 @@ func TestSimpleReflect(t *testing.T) {
 
 func TestComplexReflect(t *testing.T) {
 	// 7, 0x60, 7 * 0x20,
-	// 		// b
-	// 		3, 0x21, 0x22, 0x23,
-	// 		// c
-	// 		0x40, 0x80,
-	// 		8, string("abcdefgh"),
-	// 		52, string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	// // b
+	// 3, 0x21, 0x22, 0x23,
+	// // c
+	// 0x40, 0x80,
+	// 8, string("abcdefgh"),
+	// 52, string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	dec := hexDecode(`
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000060

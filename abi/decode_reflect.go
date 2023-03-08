@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// TODO: TEST THIS
 func (d *Decoder) DecodeInto(v any) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -245,7 +244,7 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 			return err
 		}
 		return reflectBool(t, bl, target)
-	case t == STRING || t == BYTES:
+	case t == STRING, t == BYTES:
 		str, err := dec.ReadString()
 		if err != nil {
 			return err

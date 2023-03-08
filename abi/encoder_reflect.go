@@ -14,7 +14,7 @@ import (
 func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
-			err = fmt.Errorf("panic while decoding: %v", err2)
+			err = fmt.Errorf("panic while encoding: %v", err2)
 		}
 	}()
 	if err != nil {
@@ -29,9 +29,12 @@ func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 		return b.encode(args[0], val)
 	default:
 		if val.Kind() != reflect.Struct {
-			return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())
+			return fmt.Errorf("expected struct type to encode, but got '%v'", val.Kind())
 		}
 		for i := 0; i < len(args); i++ {
+			fmt.Printf("%s : %v\n", args[i], val.Field(i))
+			// fmt.Println(val.Field(i).Kind())
+			// fmt.Println(val.Field(i).Kind() == reflect.Array)
 			err = b.encode(args[i], val.Field(i))
 			if err != nil {
 				return err
@@ -41,14 +44,12 @@ func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 	}
 }
 
-func (b *Builder) EncodeArray(t TypeName, l int, v reflect.Value) (err error) {
-	vlen := v.Len()
-	if l > vlen {
-		s := reflect.MakeSlice(v.Type(), l-vlen, l-vlen)
-		v.Set(reflect.AppendSlice(v, s))
+func (b *Builder) EncodeArray(t TypeName, l int, v reflect.Value) error {
+	if l != v.Len() {
+		return fmt.Errorf("length mismatch")
 	}
 	for i := 0; i < l; i++ {
-		err = b.encode(t, v.Index(i))
+		err := b.encode(t, v.Index(i))
 		if err != nil {
 			return err
 		}
@@ -57,34 +58,36 @@ func (b *Builder) EncodeArray(t TypeName, l int, v reflect.Value) (err error) {
 }
 
 // t = function signature
-// v = contains the values to encode
+// v = golang type containing the values to encode
 func (b *Builder) encode(t TypeName, v reflect.Value) error {
 	st := string(t)
 	switch {
 	case t.IsTuple():
 		if v.Kind() != reflect.Struct {
-			return fmt.Errorf("expected struct type to decode tuple into, but got '%v'", v.Kind())
+			return fmt.Errorf("expected struct type to encode tuple into, but got '%v'", v.Kind())
 		}
-		b.EnterTuple()
+		cur := b.EnterTuple()
 		targs := t.TupleArgs()
 		for i := 0; i < v.NumField(); i++ {
-			err := b.encode(targs[i], v.Field(i))
+			err := cur.encode(targs[i], v.Field(i))
 			if err != nil {
 				return err
 			}
 		}
-		b.Exit()
+		cur.Exit()
 		return nil
 	case t.IsFixedSlice():
+		//fmt.Printf("%s : %v\n", t, v)
+		//fmt.Println(v.Kind())
 		if v.Kind() != reflect.Array {
-			return fmt.Errorf("cannot decode %s into %v", t, v.Kind())
+			return fmt.Errorf("cannot encode %v into %s", v.Kind(), t)
 		}
 		tn, l := t.UnSlice()
 		if l != v.Len() {
 			return fmt.Errorf("solidity array length mismatch query: %v target: %v", l, v.Len())
 		}
 		cur := b.EnterArray(tn, l)
-		err := cur.EncodeArray(t, l, v)
+		err := cur.EncodeArray(tn, l, v)
 		if err != nil {
 			return err
 		}
@@ -92,7 +95,7 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 		return nil
 	case t.IsSlice():
 		if v.Kind() != reflect.Slice {
-			return fmt.Errorf("cannot decode %s into %v", t, v.Type())
+			return fmt.Errorf("cannot encode %s into %v", t, v.Type())
 		}
 		tn, _ := t.UnSlice()
 		cur := b.EnterDynamicArray()
@@ -133,13 +136,17 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 			b.WriteBigUint(uint256.NewInt(i))
 			return nil
 		} else {
+			fmt.Println(v.Type())
 			if !v.CanInt() {
+				fmt.Println(v.Interface())
 				ui, err := v.Interface().(uint256.Int)
+				fmt.Printf("%v %v\n", ui, err)
 				if !err {
 					b.WriteBigUint(&ui)
 					return nil
 				}
 				ui2, err2 := v.Interface().(big.Int)
+				fmt.Println("here")
 				if !err2 {
 					b.WriteBigInt(&ui2)
 					return nil
@@ -162,11 +169,24 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 				return err
 			}
 		}
-		b.WriteFixedBytes(amt, v.String())
-		return nil
+		return b.encodeReflectBytes(amt, v)
 	default:
 		return fmt.Errorf("encountered unknown type: %s", st)
 	}
+}
+
+// n = number of bytes
+// will panic if not string or byte slice/array
+func (b *Builder) encodeReflectBytes(n int, v reflect.Value) error {
+	switch v.Kind() {
+	case reflect.String:
+		b.WriteFixedBytes(n, []byte(v.String()))
+	case reflect.Slice, reflect.Array:
+		b.WriteFixedBytes(n, v.Bytes())
+	default:
+		return fmt.Errorf("could not encode %v into bytes", v.Type())
+	}
+	return nil
 }
 
 func (b *Builder) encodeReflectAddress(v reflect.Value) error {
@@ -179,6 +199,7 @@ func (b *Builder) encodeReflectAddress(v reflect.Value) error {
 	default:
 		return fmt.Errorf("could not encode %v into %v", v.Type(), addr)
 	}
+	b.WriteAddress(addr)
 	return nil
 }
 
