@@ -31,6 +31,7 @@ func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to encode, but got '%v'", val.Kind())
 		}
+		fmt.Println(args)
 		for i := 0; i < len(args); i++ {
 			fmt.Printf("%s : %v\n", args[i], val.Field(i))
 			// fmt.Println(val.Field(i).Kind())
@@ -120,13 +121,13 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 	case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):
 		if st[0] == 'u' {
 			if !v.CanUint() {
-				ui, err := v.Interface().(uint256.Int)
-				if !err {
+				ui, ok := v.Interface().(uint256.Int)
+				if ok {
 					b.WriteBigUint(&ui)
 					return nil
 				}
-				ui2, err2 := v.Interface().(big.Int)
-				if !err2 && ui.Sign() >= 0 {
+				ui2, ok2 := v.Interface().(big.Int)
+				if ok2 && ui.Sign() >= 0 {
 					b.WriteBigInt(&ui2)
 					return nil
 				}
@@ -139,15 +140,15 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 			fmt.Println(v.Type())
 			if !v.CanInt() {
 				fmt.Println(v.Interface())
-				ui, err := v.Interface().(uint256.Int)
-				fmt.Printf("%v %v\n", ui, err)
-				if !err {
+				ui, ok := v.Interface().(uint256.Int)
+				fmt.Printf("%v %v\n", ui, ok)
+				if ok {
 					b.WriteBigUint(&ui)
 					return nil
 				}
-				ui2, err2 := v.Interface().(big.Int)
+				ui2, ok2 := v.Interface().(big.Int)
 				fmt.Println("here")
-				if !err2 {
+				if ok2 {
 					b.WriteBigInt(&ui2)
 					return nil
 				}

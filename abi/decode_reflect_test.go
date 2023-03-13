@@ -2,7 +2,6 @@ package abi
 
 import (
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -25,12 +24,8 @@ func TestBasicTypeReflect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if One.Int64() != 69 {
-		t.Errorf("expect %d got %d", 69, One)
-	}
-	if Two != true {
-		t.Errorf("expect %v got %v", true, Two)
-	}
+	assert.Equal(t, 69, One.Int64())
+	assert.True(t, Two)
 }
 
 func TestAddressReflect(t *testing.T) {
@@ -45,7 +40,7 @@ func TestAddressReflect(t *testing.T) {
 }
 
 func TestDynamicReflect(t *testing.T) {
-	dec := hexDecode(`
+	hex := `
 0000000000000000000000000000000000000000000000000000000000000123
 0000000000000000000000000000000000000000000000000000000000000080
 3132333435363738393000000000000000000000000000000000000000000000
@@ -54,7 +49,7 @@ func TestDynamicReflect(t *testing.T) {
 0000000000000000000000000000000000000000000000000000000000000456
 0000000000000000000000000000000000000000000000000000000000000789
 000000000000000000000000000000000000000000000000000000000000000d
-48656c6c6f2c20776f726c642100000000000000000000000000000000000000`)
+48656c6c6f2c20776f726c642100000000000000000000000000000000000000`
 	type f struct {
 		A big.Int `abi:"int64"`
 		B []uint  `abi:"uint64[]"`
@@ -62,84 +57,56 @@ func TestDynamicReflect(t *testing.T) {
 		D string  `abi:"string"`
 	}
 	var r f
-	err := dec.DecodeInto(&r)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if r.A.Int64() != 0x123 {
-		t.Errorf("expect %v got %v", 0x123, r.A)
-	}
-	if !reflect.DeepEqual(r.B, []uint{0x456, 0x789}) {
-		t.Errorf("expect %v got %v", []uint{0x456, 0x789}, r.B)
-	}
-	if !(string(r.C) == "1234567890") {
-		t.Errorf("expect %v got %v", "1234567890", string(r.C))
-	}
-	if r.D != "Hello, world!" {
-		t.Errorf("expect %v got %v", "Hello, world!", string(r.D))
-	}
-}
-
-func TestDynamicTypeNameReflect(t *testing.T) {
-	dec := hexDecode(`
-0000000000000000000000000000000000000000000000000000000000000123
-0000000000000000000000000000000000000000000000000000000000000080
-3132333435363738393000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000e0
-0000000000000000000000000000000000000000000000000000000000000002
-0000000000000000000000000000000000000000000000000000000000000456
-0000000000000000000000000000000000000000000000000000000000000789
-000000000000000000000000000000000000000000000000000000000000000d
-48656c6c6f2c20776f726c642100000000000000000000000000000000000000`)
-	type f struct {
-		A int
-		B []uint
-		C []byte
-		D string
-	}
-	var r f
+	dec := hexDecode(hex)
 	err := dec.Decode(&r, INT64, SLICE(UINT64), BYTES10, STRING)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(r.A, 0x123) {
-		t.Errorf("expect %v got %v", 0x123, r.A)
+	assert.Equal(t, int64(0x123), r.A.Int64())
+	assert.Equal(t, []uint{0x456, 0x789}, r.B)
+	assert.Equal(t, []byte("1234567890"), r.C)
+	assert.Equal(t, "Hello, world!", r.D)
+
+	var r2 f
+	dec2 := hexDecode(hex)
+	err2 := dec2.DecodeInto(&r2)
+	if err2 != nil {
+		t.Fatal(err2)
 	}
-	if !reflect.DeepEqual(r.B, []uint{0x456, 0x789}) {
-		t.Errorf("expect %v got %v", []uint{0x456, 0x789}, r.B)
-	}
-	if !(string(r.C) == "1234567890") {
-		t.Errorf("expect %v got %v", "1234567890", string(r.C))
-	}
-	if r.D != "Hello, world!" {
-		t.Errorf("expect %v got %v", "Hello, world!", string(r.D))
-	}
+	assert.Equal(t, int64(0x123), r2.A.Int64())
+	assert.Equal(t, []uint{0x456, 0x789}, r2.B)
+	assert.Equal(t, []byte("1234567890"), r2.C)
+	assert.Equal(t, "Hello, world!", r2.D)
 }
 
 func TestSimpleReflect(t *testing.T) {
-	dec := hexDecode(`
+	hex := `
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000040
 0000000000000000000000000000000000000000000000000000000000000003
 0000000000000000000000000000000000000000000000000000000000000021
 0000000000000000000000000000000000000000000000000000000000000022
-0000000000000000000000000000000000000000000000000000000000000023
-	`)
+0000000000000000000000000000000000000000000000000000000000000023`
 	type f struct {
 		A uint   `abi:"uint256"`
 		B []uint `abi:"uint256[]"`
 	}
 	var r f
+	dec := hexDecode(hex)
 	err := dec.Decode(&r, UINT, SLICE(UINT))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.A != 7 {
-		t.Errorf("expect %v got %v", 7, r.A)
+	assert.Equal(t, uint(7), r.A)
+	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r.B)
+	var r2 f
+	dec2 := hexDecode(hex)
+	err2 := dec2.DecodeInto(&r2)
+	if err2 != nil {
+		t.Fatal(err2)
 	}
-	if !reflect.DeepEqual(r.B, []uint{0x21, 0x22, 0x23}) {
-		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.B)
-	}
+	assert.Equal(t, uint(7), r2.A)
+	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r2.B)
 }
 
 func TestComplexReflect(t *testing.T) {
@@ -150,7 +117,7 @@ func TestComplexReflect(t *testing.T) {
 	// 0x40, 0x80,
 	// 8, string("abcdefgh"),
 	// 52, string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	dec := hexDecode(`
+	hex := `
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000060
 00000000000000000000000000000000000000000000000000000000000000e0
@@ -164,27 +131,31 @@ func TestComplexReflect(t *testing.T) {
 6162636465666768000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000034
 4142434445464748494a4b4c4d4e4f505152535455565758595a414243444546
-4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000
-	`)
+4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000`
 	type f struct {
 		A uint      `abi:"uint256"`
 		B []uint    `abi:"uint256[]"`
 		C [2]string `abi:"bytes[2]"`
 	}
 	var r f
+	dec := hexDecode(hex)
 	err := dec.Decode(&r, UINT, SLICE(UINT), ARRAY(BYTES, 2))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.A != 7 {
-		t.Errorf("expect %v got %v", 7, r.A)
+	assert.Equal(t, uint(7), r.A)
+	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r.B)
+	assert.Equal(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.C)
+
+	var r2 f
+	dec2 := hexDecode(hex)
+	err2 := dec2.DecodeInto(&r2)
+	if err2 != nil {
+		t.Fatal(err2)
 	}
-	if !reflect.DeepEqual(r.B, []uint{0x21, 0x22, 0x23}) {
-		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.B)
-	}
-	if !reflect.DeepEqual(r.C, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
-		t.Errorf("expect %v got %v", [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.C)
-	}
+	assert.Equal(t, uint(7), r2.A)
+	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r2.B)
+	assert.Equal(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r2.C)
 }
 
 func TestStructComplex(t *testing.T) {
@@ -205,7 +176,7 @@ func TestStructComplex(t *testing.T) {
 	// 0, 0, 0,
 	// 0x21, 2, 0x22,
 	// 0, 0, 0
-	dec := hexDecode(`
+	hex := `
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000080
 00000000000000000000000000000000000000000000000000000000000001e0
@@ -238,14 +209,14 @@ func TestStructComplex(t *testing.T) {
 0000000000000000000000000000000000000000000000000000000000000022
 0000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000`)
+0000000000000000000000000000000000000000000000000000000000000000`
 	type Q struct {
 		X uint
 		E uint8
 		Y uint8
 	}
 	type S struct {
-		C string //address
+		C string `abi:"address"`
 		T []Q
 	}
 	type f struct {
@@ -255,6 +226,7 @@ func TestStructComplex(t *testing.T) {
 		B  uint
 	}
 	var r f
+	dec := hexDecode(hex)
 	err := dec.Decode(&r, UINT, ARRAY(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8))), 2), SLICE(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8)))), UINT)
 	if err != nil {
 		t.Fatal(err)
@@ -280,4 +252,32 @@ func TestStructComplex(t *testing.T) {
 	assert.Equal(t, Q{0, 0, 0}, r.S2[1].T[2])
 	// r.B
 	assert.Equal(t, uint(8), r.B)
+
+	var r2 f
+	dec2 := hexDecode(hex)
+	err2 := dec2.DecodeInto(&r2)
+	if err2 != nil {
+		t.Fatal(err2)
+	}
+	// r.A
+	assert.Equal(t, uint(7), r2.A)
+	// r.S1[0]
+	assert.Equal(t, common.HexToAddress("0x001d3f1ef827552ae1114027bd3ecf1f086ba0f9").Hex(), r2.S1[0].C)
+	assert.Equal(t, Q{0x11, 1, 0x12}, r2.S1[0].T[0])
+	// r.S1[1]
+	assert.Equal(t, common.HexToAddress("0x0").Hex(), r2.S1[1].C)
+	assert.Empty(t, r2.S1[1].T)
+
+	assert.Equal(t, 2, len(r2.S2))
+	// r.S2[0]
+	assert.Equal(t, common.HexToAddress("0x0").Hex(), r2.S2[0].C)
+	assert.Empty(t, r2.S2[0].T)
+	// r.S2[1]
+	assert.Equal(t, common.HexToAddress("0x1234").Hex(), r2.S2[1].C)
+	assert.Equal(t, 3, len(r2.S2[1].T))
+	assert.Equal(t, Q{0, 0, 0}, r2.S2[1].T[0])
+	assert.Equal(t, Q{0x21, 2, 0x22}, r2.S2[1].T[1])
+	assert.Equal(t, Q{0, 0, 0}, r2.S2[1].T[2])
+	// r.B
+	assert.Equal(t, uint(8), r2.B)
 }

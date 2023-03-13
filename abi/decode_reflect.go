@@ -21,30 +21,34 @@ func (d *Decoder) DecodeInto(v any) (err error) {
 	if val.Kind() != reflect.Ptr {
 		return fmt.Errorf("abi: expected ptr type to decode into, but got '%v'", val.Kind())
 	}
+
 	val = val.Elem()
-	tn := CreateTypeName(val)
+	tn := CreateTypeName(val.Type())
+	fmt.Println(tn)
+
 	if val.Kind() == reflect.Struct {
 		return d.Decode(v, tn.TupleArgs()...)
 	}
 	return d.Decode(v, tn)
 }
 
-func CreateTypeName(val reflect.Value) TypeName {
-	switch val.Kind() {
+func CreateTypeName(t reflect.Type) TypeName {
+	//fmt.Printf("type: %v kind: %v\n", t, t.Kind())
+	switch t.Kind() {
 	case reflect.Pointer:
-		return CreateTypeName(val.Elem())
+		return CreateTypeName(t.Elem())
 	case reflect.Slice:
-		return SLICE(CreateTypeName(val.Elem()))
+		return SLICE(CreateTypeName(t.Elem()))
 	case reflect.Array:
-		return ARRAY(CreateTypeName(val.Elem()), val.Len())
+		return ARRAY(CreateTypeName(t.Elem()), t.Len())
 	case reflect.Struct:
-		args := make([]TypeName, val.NumField())
-		for i := 0; i < val.NumField(); i++ {
-			tag := val.Type().Field(i).Tag.Get("abi")
+		args := make([]TypeName, t.NumField())
+		for i := 0; i < t.NumField(); i++ {
+			tag := t.Field(i).Tag.Get("abi")
 			if tag != "" {
 				args[i] = TypeName(tag)
 			} else {
-				args[i] = CreateTypeName(val.Field(i))
+				args[i] = CreateTypeName(t.Field(i).Type)
 			}
 		}
 		return TUPLE(args...)
@@ -53,45 +57,16 @@ func CreateTypeName(val reflect.Value) TypeName {
 	case reflect.Bool:
 		return BOOL
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		s := strings.ToLower(val.Kind().String())
+		s := strings.ToLower(t.Kind().String())
 		return TypeName(s)
-	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		s := strings.ToLower(val.Kind().String())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		s := strings.ToLower(t.Kind().String())
 		return TypeName(s)
 	case reflect.String:
 		return STRING
 	default:
 		return NIL
 	}
-}
-
-func (d *Decoder) DecodeIntoHelper(v reflect.Value) (err error) {
-	val := reflect.ValueOf(v)
-	switch val.Kind() {
-	case reflect.Slice:
-		return d.decode(SLICE(CreateTypeName(val.Elem())), val.Elem())
-	case reflect.Array:
-		return d.DecodeArray(CreateTypeName(val.Elem()), val.Len(), val.Elem())
-	case reflect.Struct:
-		var args []TypeName
-		for i := 0; i < val.NumField(); i++ {
-			args[i] = CreateTypeName(val.Field(i))
-		}
-		return d.decode(TUPLE(args...), val.Elem())
-	case reflect.Func:
-		return d.decode(FUNCTION, val)
-	case reflect.Bool:
-		return d.decode(BOOL, val)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		// if there is a struct tag, use it
-
-	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-	case reflect.String:
-		return d.decode(STRING, val)
-	default:
-		return nil
-	}
-	return nil
 }
 
 func (d *Decoder) Decode(v any, args ...TypeName) (err error) {
@@ -117,6 +92,7 @@ func (d *Decoder) Decode(v any, args ...TypeName) (err error) {
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())
 		}
+		//fmt.Println(args)
 		//return d.decode(TUPLE(args...), val)
 		for i := 0; i < len(args); i++ {
 			//fmt.Printf("%v -> %v\n", args[i], val.Field(i))
@@ -264,7 +240,6 @@ func (dec *Decoder) decode(t TypeName, target reflect.Value) error {
 	// 	return err
 	// }
 	// return reflectDynamicBytes(t, bts, target)
-
 	case strings.HasPrefix(st, "bytes") || t == FUNCTION:
 		var amt int
 		var err error
