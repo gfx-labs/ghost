@@ -24,7 +24,7 @@ func TestBasicTypeReflect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, 69, One.Int64())
+	assert.EqualValues(t, int64(69), One.Int64())
 	assert.True(t, Two)
 }
 
@@ -36,7 +36,7 @@ func TestAddressReflect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, common.HexToAddress("0x1234"), addr)
+	assert.EqualValues(t, common.HexToAddress("0x1234"), addr)
 }
 
 func TestDynamicReflect(t *testing.T) {
@@ -62,10 +62,10 @@ func TestDynamicReflect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, int64(0x123), r.A.Int64())
-	assert.Equal(t, []uint{0x456, 0x789}, r.B)
-	assert.Equal(t, []byte("1234567890"), r.C)
-	assert.Equal(t, "Hello, world!", r.D)
+	assert.EqualValues(t, int64(0x123), r.A.Int64())
+	assert.EqualValues(t, []uint{0x456, 0x789}, r.B)
+	assert.EqualValues(t, []byte("1234567890"), r.C)
+	assert.EqualValues(t, "Hello, world!", r.D)
 
 	var r2 f
 	dec2 := hexDecode(hex)
@@ -73,10 +73,10 @@ func TestDynamicReflect(t *testing.T) {
 	if err2 != nil {
 		t.Fatal(err2)
 	}
-	assert.Equal(t, int64(0x123), r2.A.Int64())
-	assert.Equal(t, []uint{0x456, 0x789}, r2.B)
-	assert.Equal(t, []byte("1234567890"), r2.C)
-	assert.Equal(t, "Hello, world!", r2.D)
+	assert.EqualValues(t, int64(0x123), r2.A.Int64())
+	assert.EqualValues(t, []uint{0x456, 0x789}, r2.B)
+	assert.EqualValues(t, []byte("1234567890"), r2.C)
+	assert.EqualValues(t, "Hello, world!", r2.D)
 }
 
 func TestSimpleReflect(t *testing.T) {
@@ -97,16 +97,16 @@ func TestSimpleReflect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, uint(7), r.A)
-	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r.B)
+	assert.EqualValues(t, uint(7), r.A)
+	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r.B)
 	var r2 f
 	dec2 := hexDecode(hex)
 	err2 := dec2.DecodeInto(&r2)
 	if err2 != nil {
 		t.Fatal(err2)
 	}
-	assert.Equal(t, uint(7), r2.A)
-	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r2.B)
+	assert.EqualValues(t, uint(7), r2.A)
+	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r2.B)
 }
 
 func TestComplexReflect(t *testing.T) {
@@ -143,9 +143,9 @@ func TestComplexReflect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, uint(7), r.A)
-	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r.B)
-	assert.Equal(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.C)
+	assert.EqualValues(t, uint(7), r.A)
+	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r.B)
+	assert.EqualValues(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.C)
 
 	var r2 f
 	dec2 := hexDecode(hex)
@@ -153,9 +153,9 @@ func TestComplexReflect(t *testing.T) {
 	if err2 != nil {
 		t.Fatal(err2)
 	}
-	assert.Equal(t, uint(7), r2.A)
-	assert.Equal(t, []uint{0x21, 0x22, 0x23}, r2.B)
-	assert.Equal(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r2.C)
+	assert.EqualValues(t, uint(7), r2.A)
+	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r2.B)
+	assert.EqualValues(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r2.C)
 }
 
 func TestStructComplex(t *testing.T) {
@@ -232,26 +232,26 @@ func TestStructComplex(t *testing.T) {
 		t.Fatal(err)
 	}
 	// r.A
-	assert.Equal(t, uint(7), r.A)
+	assert.EqualValues(t, uint(7), r.A)
 	// r.S1[0]
-	assert.Equal(t, common.HexToAddress("0x001d3f1ef827552ae1114027bd3ecf1f086ba0f9").Hex(), r.S1[0].C)
-	assert.Equal(t, Q{0x11, 1, 0x12}, r.S1[0].T[0])
+	assert.EqualValues(t, common.HexToAddress("0x001d3f1ef827552ae1114027bd3ecf1f086ba0f9").Hex(), r.S1[0].C)
+	assert.EqualValues(t, Q{0x11, 1, 0x12}, r.S1[0].T[0])
 	// r.S1[1]
-	assert.Equal(t, common.HexToAddress("0x0").Hex(), r.S1[1].C)
+	assert.EqualValues(t, common.HexToAddress("0x0").Hex(), r.S1[1].C)
 	assert.Empty(t, r.S1[1].T)
 
-	assert.Equal(t, 2, len(r.S2))
+	assert.EqualValues(t, 2, len(r.S2))
 	// r.S2[0]
-	assert.Equal(t, common.HexToAddress("0x0").Hex(), r.S2[0].C)
+	assert.EqualValues(t, common.HexToAddress("0x0").Hex(), r.S2[0].C)
 	assert.Empty(t, r.S2[0].T)
 	// r.S2[1]
-	assert.Equal(t, common.HexToAddress("0x1234").Hex(), r.S2[1].C)
-	assert.Equal(t, 3, len(r.S2[1].T))
-	assert.Equal(t, Q{0, 0, 0}, r.S2[1].T[0])
-	assert.Equal(t, Q{0x21, 2, 0x22}, r.S2[1].T[1])
-	assert.Equal(t, Q{0, 0, 0}, r.S2[1].T[2])
+	assert.EqualValues(t, common.HexToAddress("0x1234").Hex(), r.S2[1].C)
+	assert.EqualValues(t, 3, len(r.S2[1].T))
+	assert.EqualValues(t, Q{0, 0, 0}, r.S2[1].T[0])
+	assert.EqualValues(t, Q{0x21, 2, 0x22}, r.S2[1].T[1])
+	assert.EqualValues(t, Q{0, 0, 0}, r.S2[1].T[2])
 	// r.B
-	assert.Equal(t, uint(8), r.B)
+	assert.EqualValues(t, uint(8), r.B)
 
 	var r2 f
 	dec2 := hexDecode(hex)
@@ -260,24 +260,24 @@ func TestStructComplex(t *testing.T) {
 		t.Fatal(err2)
 	}
 	// r.A
-	assert.Equal(t, uint(7), r2.A)
+	assert.EqualValues(t, uint(7), r2.A)
 	// r.S1[0]
-	assert.Equal(t, common.HexToAddress("0x001d3f1ef827552ae1114027bd3ecf1f086ba0f9").Hex(), r2.S1[0].C)
-	assert.Equal(t, Q{0x11, 1, 0x12}, r2.S1[0].T[0])
+	assert.EqualValues(t, common.HexToAddress("0x001d3f1ef827552ae1114027bd3ecf1f086ba0f9").Hex(), r2.S1[0].C)
+	assert.EqualValues(t, Q{0x11, 1, 0x12}, r2.S1[0].T[0])
 	// r.S1[1]
-	assert.Equal(t, common.HexToAddress("0x0").Hex(), r2.S1[1].C)
+	assert.EqualValues(t, common.HexToAddress("0x0").Hex(), r2.S1[1].C)
 	assert.Empty(t, r2.S1[1].T)
 
-	assert.Equal(t, 2, len(r2.S2))
+	assert.EqualValues(t, 2, len(r2.S2))
 	// r.S2[0]
-	assert.Equal(t, common.HexToAddress("0x0").Hex(), r2.S2[0].C)
+	assert.EqualValues(t, common.HexToAddress("0x0").Hex(), r2.S2[0].C)
 	assert.Empty(t, r2.S2[0].T)
 	// r.S2[1]
-	assert.Equal(t, common.HexToAddress("0x1234").Hex(), r2.S2[1].C)
-	assert.Equal(t, 3, len(r2.S2[1].T))
-	assert.Equal(t, Q{0, 0, 0}, r2.S2[1].T[0])
-	assert.Equal(t, Q{0x21, 2, 0x22}, r2.S2[1].T[1])
-	assert.Equal(t, Q{0, 0, 0}, r2.S2[1].T[2])
+	assert.EqualValues(t, common.HexToAddress("0x1234").Hex(), r2.S2[1].C)
+	assert.EqualValues(t, 3, len(r2.S2[1].T))
+	assert.EqualValues(t, Q{0, 0, 0}, r2.S2[1].T[0])
+	assert.EqualValues(t, Q{0x21, 2, 0x22}, r2.S2[1].T[1])
+	assert.EqualValues(t, Q{0, 0, 0}, r2.S2[1].T[2])
 	// r.B
-	assert.Equal(t, uint(8), r2.B)
+	assert.EqualValues(t, uint(8), r2.B)
 }

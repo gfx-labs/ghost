@@ -2,8 +2,9 @@ package abi
 
 import (
 	"bytes"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBasic(t *testing.T) {
@@ -16,22 +17,16 @@ func TestBasic(t *testing.T) {
 	}
 	var r baz
 	var err error
-
 	r.x, err = dec.ReadInt()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.x != 69 {
-		t.Errorf("expect %d got %d", 69, r.x)
-	}
-
 	r.y, err = dec.ReadBool()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.y != true {
-		t.Errorf("expect %v got %v", true, r.y)
-	}
+	assert.EqualValues(t, 69, r.x)
+	assert.EqualValues(t, true, r.y)
 }
 
 func TestSimple(t *testing.T) {
@@ -46,7 +41,6 @@ func TestSimple(t *testing.T) {
 		a uint
 		b []uint
 	}
-
 	var r f
 	var err error
 	r.a, err = dec.ReadUint()
@@ -69,13 +63,8 @@ func TestSimple(t *testing.T) {
 		}
 		r.b = append(r.b, uint(val))
 	}
-
-	if r.a != 7 {
-		t.Errorf("expect %v got %v", 7, r.a)
-	}
-	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
-		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
-	}
+	assert.EqualValues(t, 7, r.a)
+	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r.b)
 }
 
 func TestDynamic(t *testing.T) {
@@ -95,14 +84,12 @@ func TestDynamic(t *testing.T) {
 		c []byte
 		d string
 	}
-
 	var r f
 	var err error
 	r.a, err = dec.ReadInt()
 	if err != nil {
 		t.Fatal("r.a", err)
 	}
-
 	arr_b, err := dec.ReadDynamic()
 	if err != nil {
 		t.Fatal("r.b", err)
@@ -138,23 +125,17 @@ func TestDynamic(t *testing.T) {
 	}
 	r.d = string(bts)
 
-	if !reflect.DeepEqual(r.a, 0x123) {
-		t.Errorf("expect %v got %v", 0x123, r.a)
-	}
-	if !reflect.DeepEqual(r.b, []uint32{0x456, 0x789}) {
-		t.Errorf("expect %v got %v", []uint32{0x456, 0x789}, r.b)
-	}
-	if !(string(r.c) == "1234567890") {
-		t.Errorf("expect %v got %v", true, r.c)
-	}
+	assert.EqualValues(t, 0x123, r.a)
+	assert.EqualValues(t, []uint32{0x456, 0x789}, r.b)
+	assert.EqualValues(t, []byte("1234567890"), r.c)
+	assert.EqualValues(t, "Hello, world!", r.d)
 }
 
 func TestStructSimple(t *testing.T) {
 	dec := hexDecode(`
 00000000000000000000000000000000000000000000000000000000000ff010
 0000000000000000000000000000000000000000000000000000000000ff0002
-6162636400000000000000000000000000000000000000000000000000000000
-	`)
+6162636400000000000000000000000000000000000000000000000000000000`)
 	type f struct {
 		a int    `abi:"int256"`
 		b uint   `abi:"uint256"`
@@ -166,34 +147,28 @@ func TestStructSimple(t *testing.T) {
 	if err != nil {
 		t.Fatal("r.a", err)
 	}
-	if r.a != 0xff010 {
-		t.Errorf("expect %v got %v", 0xff010, r.a)
-	}
 	r.b, err = dec.ReadUint()
 	if err != nil {
 		t.Fatal("r.b", err)
-	}
-	if r.b != 0xff0002 {
-		t.Errorf("expect %v got %v", 0xff0002, r.b)
 	}
 	r.c, err = dec.ReadNPadRight32(16)
 	r.c = bytes.TrimRight(r.c, "\x00")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !(string(r.c) == "abcd") {
-		t.Errorf("expect %v got %v", "abcd", string(r.c))
-	}
+	assert.EqualValues(t, 0xff010, r.a)
+	assert.EqualValues(t, 0xff0002, r.b)
+	assert.EqualValues(t, []byte("abcd"), r.c)
 }
 
 func TestComplex(t *testing.T) {
 	// 7, 0x60, 7 * 0x20,
-	// 		// b
-	// 		3, 0x21, 0x22, 0x23,
-	// 		// c
-	// 		0x40, 0x80,
-	// 		8, string("abcdefgh"),
-	// 		52, string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	// // b
+	// 3, 0x21, 0x22, 0x23,
+	// // c
+	// 0x40, 0x80,
+	// 8, string("abcdefgh"),
+	// 52, string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	dec := hexDecode(`
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000060
@@ -208,8 +183,7 @@ func TestComplex(t *testing.T) {
 6162636465666768000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000034
 4142434445464748494a4b4c4d4e4f505152535455565758595a414243444546
-4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000
-	`)
+4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000`)
 	type f struct {
 		a uint      `abi:"uint256"`
 		b []uint    `abi:"uint256[]"`
@@ -221,12 +195,10 @@ func TestComplex(t *testing.T) {
 	if err != nil {
 		t.Fatal("r.a", err)
 	}
-
 	arr_b, err := dec.ReadDynamic()
 	if err != nil {
 		t.Fatal("r.b", err)
 	}
-
 	array_len, err := arr_b.ReadInt()
 	if err != nil {
 		t.Fatal("r.b_len", err)
@@ -240,7 +212,6 @@ func TestComplex(t *testing.T) {
 		}
 		r.b = append(r.b, uint(val))
 	}
-
 	arr_c, err := dec.ReadDynamic()
 	if err != nil {
 		t.Fatal("r.c", err)
@@ -253,14 +224,7 @@ func TestComplex(t *testing.T) {
 		}
 		r.c[i] = val
 	}
-
-	if r.a != 7 {
-		t.Errorf("expect %v got %v", 7, r.a)
-	}
-	if !reflect.DeepEqual(r.b, []uint{0x21, 0x22, 0x23}) {
-		t.Errorf("expect %v got %v", []uint{0x21, 0x22, 0x23}, r.b)
-	}
-	if !reflect.DeepEqual(r.c, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
-		t.Errorf("expect %v got %v", [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.c)
-	}
+	assert.EqualValues(t, 7, r.a)
+	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r.b)
+	assert.EqualValues(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.c)
 }

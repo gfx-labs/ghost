@@ -31,11 +31,9 @@ func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to encode, but got '%v'", val.Kind())
 		}
-		fmt.Println(args)
+		//fmt.Println(args)
 		for i := 0; i < len(args); i++ {
-			fmt.Printf("%s : %v\n", args[i], val.Field(i))
-			// fmt.Println(val.Field(i).Kind())
-			// fmt.Println(val.Field(i).Kind() == reflect.Array)
+			//fmt.Printf("%s : %v\n", args[i], val.Field(i))
 			err = b.encode(args[i], val.Field(i))
 			if err != nil {
 				return err
@@ -78,8 +76,6 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 		cur.Exit()
 		return nil
 	case t.IsFixedSlice():
-		//fmt.Printf("%s : %v\n", t, v)
-		//fmt.Println(v.Kind())
 		if v.Kind() != reflect.Array {
 			return fmt.Errorf("cannot encode %v into %s", v.Kind(), t)
 		}
@@ -137,17 +133,16 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 			b.WriteBigUint(uint256.NewInt(i))
 			return nil
 		} else {
-			fmt.Println(v.Type())
+			//fmt.Println(v.Type())
 			if !v.CanInt() {
-				fmt.Println(v.Interface())
+				//fmt.Println(v.Interface())
 				ui, ok := v.Interface().(uint256.Int)
-				fmt.Printf("%v %v\n", ui, ok)
+				//fmt.Printf("%v %v\n", ui, ok)
 				if ok {
 					b.WriteBigUint(&ui)
 					return nil
 				}
 				ui2, ok2 := v.Interface().(big.Int)
-				fmt.Println("here")
 				if ok2 {
 					b.WriteBigInt(&ui2)
 					return nil

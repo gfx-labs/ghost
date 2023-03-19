@@ -24,8 +24,7 @@ func (d *Decoder) DecodeInto(v any) (err error) {
 
 	val = val.Elem()
 	tn := CreateTypeName(val.Type())
-	fmt.Println(tn)
-
+	//fmt.Println(tn)
 	if val.Kind() == reflect.Struct {
 		return d.Decode(v, tn.TupleArgs()...)
 	}

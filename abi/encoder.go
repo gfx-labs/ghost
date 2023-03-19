@@ -264,7 +264,8 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 
 // 0 < i <= 32
 func (d *Builder) WriteFixedBytes(l int, s []byte) *Builder {
-	if l > len(s) {
+	//fmt.Printf("%v %s %v\n", l, s, len(s))
+	if l < len(s) {
 		panic("input length mismatch")
 	}
 	return d.WritePadRight(s)
