@@ -21,7 +21,7 @@ type Memory interface {
 
 // default memory implementation
 type memory struct {
-	encoded []byte // already encoded. history
+	encoded []byte // already encoded.
 	cur     int    // current pointer (bytes)
 }
 
@@ -72,7 +72,7 @@ func (m *memory) grow(amt int) {
 type Builder struct {
 	NewMem   func() Memory
 	parent   *Builder
-	len      int    // # of elements. also used as a boolean
+	len      int    // # of elements. 0 value is special case
 	loc      int    // starting pt in the parent builder
 	mm       Memory // the encoding of the segment
 	bm       memory
