@@ -68,7 +68,7 @@ func (m *memory) grow(amt int) {
 	m.Pos(amt)
 }
 
-// *************************	BUILDER
+// Builder is used to encode ethereum abi
 type Builder struct {
 	NewMem   func() Memory
 	parent   *Builder
