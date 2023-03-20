@@ -71,5 +71,5 @@ func (d *Builder) FixedBytes(l int, s []byte) *Builder {
 
 // DEPRECATED
 func (d *Builder) BigUint(a *uint256.Int) *Builder {
-	return d.BigUint(a)
+	return d.Uint256(a)
 }
