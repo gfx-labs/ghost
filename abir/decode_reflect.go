@@ -50,6 +50,9 @@ func CreateTypeName(t reflect.Type) abi.TypeName {
 		args := make([]abi.TypeName, t.NumField())
 		for i := 0; i < t.NumField(); i++ {
 			tag := t.Field(i).Tag.Get("abi")
+			if tag == "-" {
+				continue
+			}
 			if tag != "" {
 				args[i] = abi.TypeName(tag)
 			} else {
