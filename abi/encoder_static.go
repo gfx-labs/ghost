@@ -7,64 +7,64 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func (d *Builder) WriteBigUint(a *uint256.Int) *Builder {
-	d.WriteWord(a.Bytes())
+func (d *Builder) BigUint(a *uint256.Int) *Builder {
+	d.Word(a.Bytes())
 	return d
 }
 
-func (d *Builder) WriteAddress(a common.Address) *Builder {
-	d.WriteWord(a[:])
+func (d *Builder) Address(a common.Address) *Builder {
+	d.Word(a[:])
 	return d
 }
 
-func (d *Builder) WriteBigInt(ret *big.Int) *Builder {
+func (d *Builder) BigInt(ret *big.Int) *Builder {
 	nr := new(big.Int).Set(ret)
 	if ret.Cmp(new(big.Int)) == -1 {
 		nr.Neg(nr)
 		nr.Sub(nr, common.Big1)
 		nr.Sub(nr, MaxUint256)
 		nr.Neg(nr)
-		d.WriteWord(nr.Bytes())
+		d.Word(nr.Bytes())
 		return d
 	}
-	d.WriteWord(ret.Bytes())
+	d.Word(ret.Bytes())
 	return d
 }
 
-func (d *Builder) WriteBool(b bool) *Builder {
+func (d *Builder) Bool(b bool) *Builder {
 	if b == true {
-		d.WriteWord([]byte{0x1})
+		d.Word([]byte{0x1})
 		return d
 	}
-	d.WriteWord([]byte{0x0})
+	d.Word([]byte{0x0})
 	return d
 }
 
-func (d *Builder) WriteInt(i int) *Builder {
+func (d *Builder) Int(i int) *Builder {
 	if i >= 0 {
-		return d.WriteUint(uint(i))
+		return d.Uint(uint(i))
 	}
-	return d.WriteBigInt(big.NewInt(int64(i)))
+	return d.BigInt(big.NewInt(int64(i)))
 }
 
-func (d *Builder) WriteUint(i uint) *Builder {
-	return d.WriteBigUint(uint256.NewInt(uint64(i)))
+func (d *Builder) Uint(i uint) *Builder {
+	return d.BigUint(uint256.NewInt(uint64(i)))
 }
 
-func (d *Builder) WriteUint8(i uint8) *Builder {
-	return d.WriteUint(uint(i))
+func (d *Builder) Uint8(i uint8) *Builder {
+	return d.Uint(uint(i))
 }
 
-func (d *Builder) WriteUint16(i uint16) *Builder {
-	d.WriteUint(uint(i))
+func (d *Builder) Uint16(i uint16) *Builder {
+	d.Uint(uint(i))
 	return d
 }
 
 // 0 < i <= 32
-func (d *Builder) WriteFixedBytes(l int, s []byte) *Builder {
+func (d *Builder) FixedBytes(l int, s []byte) *Builder {
 	//fmt.Printf("%v %s %v\n", l, s, len(s))
 	if l < len(s) {
 		panic("input length mismatch")
 	}
-	return d.WritePadRight(s)
+	return d.PadRight(s)
 }

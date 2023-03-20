@@ -64,7 +64,7 @@ func (d *Builder) finishChild() []byte {
 		xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
 		d.parent.Mem().Put(d.loc, xs[:])
 		if d.write {
-			d.parent.WriteInt(d.len) // how many elements in the dynamic
+			d.parent.Int(d.len) // how many elements in the dynamic
 			d.parent.rlen -= 1
 		}
 	}
@@ -90,12 +90,12 @@ func reorder(children []*Builder) []*Builder {
 }
 
 // generic builder writer methods
-func (d *Builder) WritePadRight(xs []byte) *Builder {
+func (d *Builder) PadRight(xs []byte) *Builder {
 	d.Mem().Put(-1, padright(xs))
 	return d
 }
 
-func (d *Builder) WriteWord(xs []byte) *Builder {
+func (d *Builder) Word(xs []byte) *Builder {
 	d.Mem().Put(-1, padleft(xs))
 	return d
 }

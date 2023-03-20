@@ -107,31 +107,31 @@ func encode(b *abi.Builder, t abi.TypeName, v reflect.Value) error {
 		err := encodeReflectAddress(b, v)
 		return err
 	case t == abi.BOOL:
-		b.WriteBool(v.Bool())
+		b.Bool(v.Bool())
 		return nil
 	case t == abi.STRING:
-		b.WriteString(v.String())
+		b.String(v.String())
 		return nil
 	case t == abi.BYTES:
-		b.WriteBytes(v.String())
+		b.Bytes(v.String())
 		return nil
 	case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):
 		if st[0] == 'u' {
 			if !v.CanUint() {
 				ui, ok := v.Interface().(uint256.Int)
 				if ok {
-					b.WriteBigUint(&ui)
+					b.BigUint(&ui)
 					return nil
 				}
 				ui2, ok2 := v.Interface().(big.Int)
 				if ok2 && ui.Sign() >= 0 {
-					b.WriteBigInt(&ui2)
+					b.BigInt(&ui2)
 					return nil
 				}
 				return fmt.Errorf("could not encode %v into %s", v.Kind(), st)
 			}
 			i := v.Uint()
-			b.WriteBigUint(uint256.NewInt(i))
+			b.BigUint(uint256.NewInt(i))
 			return nil
 		} else {
 			//fmt.Println(v.Type())
@@ -140,18 +140,18 @@ func encode(b *abi.Builder, t abi.TypeName, v reflect.Value) error {
 				ui, ok := v.Interface().(uint256.Int)
 				//fmt.Printf("%v %v\n", ui, ok)
 				if ok {
-					b.WriteBigUint(&ui)
+					b.BigUint(&ui)
 					return nil
 				}
 				ui2, ok2 := v.Interface().(big.Int)
 				if ok2 {
-					b.WriteBigInt(&ui2)
+					b.BigInt(&ui2)
 					return nil
 				}
 				return fmt.Errorf("could not encode %v into %s", v.Kind(), st)
 			}
 			i := v.Int()
-			b.WriteBigInt(big.NewInt(i))
+			b.BigInt(big.NewInt(i))
 			return nil
 		}
 	case strings.HasPrefix(st, "bytes") || t == abi.FUNCTION:
@@ -177,9 +177,9 @@ func encode(b *abi.Builder, t abi.TypeName, v reflect.Value) error {
 func encodeReflectBytes(b *abi.Builder, n int, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.String:
-		b.WriteFixedBytes(n, []byte(v.String()))
+		b.FixedBytes(n, []byte(v.String()))
 	case reflect.Slice, reflect.Array:
-		b.WriteFixedBytes(n, v.Bytes())
+		b.FixedBytes(n, v.Bytes())
 	default:
 		return fmt.Errorf("could not encode %v into bytes", v.Type())
 	}
@@ -196,19 +196,19 @@ func encodeReflectAddress(b *abi.Builder, v reflect.Value) error {
 	default:
 		return fmt.Errorf("could not encode %v into %v", v.Type(), addr)
 	}
-	b.WriteAddress(addr)
+	b.Address(addr)
 	return nil
 }
 
-// func (b *Builder) WriteNumberReflect(v reflect.Value) error {
+// func (b *Builder) NumberReflect(v reflect.Value) error {
 // 	ui, err := v.Interface().(uint256.Int)
 // 	if !err {
-// 		b.WriteBigUint(&ui)
+// 		b.BigUint(&ui)
 // 		return nil
 // 	}
 // 	i, err2 := v.Interface().(big.Int)
 // 	if !err2 {
-// 		b.WriteBigInt(&i)
+// 		b.BigInt(&i)
 // 		return nil
 // 	}
 // 	return fmt.Errorf("could not encode %v into %s", v.Kind(), st)
