@@ -217,7 +217,7 @@ func TestComplex(t *testing.T) {
 		t.Fatal("r.c", err)
 	}
 	for i := 0; i < len(r.c); i++ {
-		val, err := arr_c.String()
+		val, err := arr_c.DString()
 		if err != nil {
 			t.Fatal("r.c_inside", err)
 			t.Fatal(err)

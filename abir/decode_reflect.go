@@ -224,7 +224,7 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 		}
 		return reflectBool(t, bl, target)
 	case t == abi.STRING, t == abi.BYTES:
-		str, err := dec.String()
+		str, err := dec.DString()
 		if err != nil {
 			return err
 		}

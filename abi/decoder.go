@@ -203,7 +203,7 @@ func (d *Decoder) DynamicLength() (*Decoder, int, error) {
 	return NewDecoder(dec1.xs[32:]), l, nil
 }
 
-func (d *Decoder) String() (string, error) {
+func (d *Decoder) DString() (string, error) {
 	offset, err := d.Uint256()
 	if err != nil {
 		return "", err
