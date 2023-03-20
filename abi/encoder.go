@@ -1,6 +1,8 @@
 package abi
 
 import (
+	"sort"
+
 	"github.com/holiman/uint256"
 )
 
@@ -64,24 +66,19 @@ func (d *Builder) Finish() []byte {
 }
 
 func reorder(children []*Builder) []*Builder {
-	r := make([]*Builder, len(children))
-	border := 0
-	for _, c := range children {
-		if c.len < 0 { // is static
-			border++
+	sort.SliceStable(children, func(i, j int) bool {
+		if children[i].len < 0 && children[j].len < 0 {
+			return i < j
 		}
-	}
-	var i, j int
-	for _, c := range children {
-		if c.len < 0 {
-			r[i] = c
-			i++
-		} else {
-			r[border+j] = c
-			j++
+		if children[i].len < 0 && children[j].len >= 0 {
+			return true
 		}
-	}
-	return r
+		if children[i].len >= 0 && children[j].len < 0 {
+			return false
+		}
+		return i < j
+	})
+	return children
 }
 
 // generic builder writer methods
