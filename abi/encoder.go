@@ -39,16 +39,24 @@ func (d *Builder) Mem() Memory {
 }
 
 // finish closes all children, and returns the result slice
-func (d *Builder) Finish() []byte {
+func (d *Builder) Finish(prefix ...[]byte) []byte {
 	if d.children != nil {
 		d.children = reorder(d.children)
 		for _, c := range d.children {
 			c.Finish()
 		}
 	}
-	if d.parent == nil {
-		return d.Mem().Data()
+	// if we are a child, there is special logic in our finish
+	if d.parent != nil {
+		return d.finishChild()
 	}
+	for _, v := range prefix {
+		d.Mem().Insert(0, v)
+	}
+	return d.Mem().Data()
+}
+
+func (d *Builder) finishChild() []byte {
 	if d.len == 0 { // length unknown at start
 		d.len = len(d.Mem().Data())/lnlen + len(d.children) + d.rlen
 	}
