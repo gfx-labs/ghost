@@ -19,8 +19,9 @@ type Memory interface {
 	Put(loc int, data []byte)
 }
 
+// default memory implementation
 type memory struct {
-	encoded []byte // already encoded. history
+	encoded []byte // already encoded.
 	cur     int    // current pointer (bytes)
 }
 
@@ -61,22 +62,23 @@ func (m *memory) Put(loc int, data []byte) {
 	}
 	copy(m.encoded[loc:loc+len(data)], data)
 }
+
 func (m *memory) grow(amt int) {
 	m.encoded = append(m.encoded, make([]byte, amt)...)
 	m.Pos(amt)
 }
 
-// *************************	BUILDER
+// Builder is used to encode ethereum abi
 type Builder struct {
 	NewMem   func() Memory
 	parent   *Builder
-	len      int    // # of elements. also used as a boolean
+	len      int    // # of elements. 0 value is special case
 	loc      int    // starting pt in the parent builder
 	mm       Memory // the encoding of the segment
 	bm       memory
 	children []*Builder
-	rlen     int  // running length
-	write    bool // write length or not
+	rlen     int  // running length. to not double count dynamic children
+	write    bool // whether to write length
 }
 
 // get the memory object, uses default memory impl by default
@@ -91,7 +93,7 @@ func (d *Builder) Mem() Memory {
 }
 
 // l = 0 is variable length dynamic
-// l = -1 is tuple (static)
+// l = -1 is tuple (static) * # doesnt matter as long as negative
 // l > 0 is length specified array (dynamic elements)
 // l < 0 is length specified array (static elements)
 func (d *Builder) EnterGroup(l int, w bool) *Builder {
@@ -106,10 +108,11 @@ func (d *Builder) EnterGroup(l int, w bool) *Builder {
 	if l >= 0 { // is dynamic
 		wd := [32]byte{} // insert offset placeholder
 		d.Mem().Put(-1, wd[:])
-		if d.len < 0 { // parent is static
-			d.len = 0
-			b := d
-			for b.parent != nil {
+		d.rlen -= 1
+		b := d
+		for b.len < 0 {
+			b.len = -b.len
+			if b.parent != nil {
 				b.parent.Mem().Insert(b.loc, wd[:])
 				b.parent.rlen = b.parent.rlen - 1
 				b = b.parent
@@ -130,11 +133,11 @@ func (d *Builder) EnterTuple() *Builder {
 
 // fixed size array
 // TODO: write in a type + size compliance check later
-func (d *Builder) EnterArray(t TypeName, l uint) *Builder {
+func (d *Builder) EnterArray(t TypeName, l int) *Builder {
 	if t.IsDynamic() {
-		return d.EnterGroup(int(l), false)
+		return d.EnterGroup(l, false)
 	}
-	return d.EnterGroup(-int(l), false)
+	return d.EnterGroup(-l, false)
 }
 
 // exit dynamic element
@@ -178,13 +181,12 @@ func (d *Builder) Finish() []byte {
 	if d.parent == nil {
 		return d.Mem().Data()
 	}
-	if d.len == 0 {
+	if d.len == 0 { // length unknown at start
 		d.len = len(d.Mem().Data())/lnlen + len(d.children) + d.rlen
 	}
-	if d.len > 0 { // dynamic element, need to write offset
+	if d.len >= 0 { // dynamic element, need to write offset
 		xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
 		d.parent.Mem().Put(d.loc, xs[:])
-		d.parent.rlen -= 1
 		if d.write {
 			d.parent.WriteInt(d.len) // how many elements in the dynamic
 			d.parent.rlen -= 1
@@ -261,11 +263,12 @@ func (d *Builder) WriteUint16(i uint16) *Builder {
 }
 
 // 0 < i <= 32
-func (d *Builder) WriteFixedBytes(i int, s string) *Builder {
-	if i < len(s) {
+func (d *Builder) WriteFixedBytes(l int, s []byte) *Builder {
+	//fmt.Printf("%v %s %v\n", l, s, len(s))
+	if l < len(s) {
 		panic("input length mismatch")
 	}
-	return d.WritePadRight([]byte(s))
+	return d.WritePadRight(s)
 }
 
 func (d *Builder) WriteString(s string) *Builder {

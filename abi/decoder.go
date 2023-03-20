@@ -1,8 +1,11 @@
 package abi
 
 import (
+	"encoding/hex"
 	"errors"
+	"io"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -20,12 +23,26 @@ type Decoder struct {
 	cur int
 }
 
+func HexDecoder(s string) *Decoder {
+	s = strings.TrimPrefix(s, "0x")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, `	`, "")
+	ans, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return NewDecoder(ans)
+}
+
 func NewDecoder(xs []byte) *Decoder {
 	return &Decoder{
 		xs: xs,
 	}
 }
 
+// reads 32 bytes
 func (d *Decoder) ReadWord() (o [32]byte, err error) {
 	_, err = d.Read(o[:])
 	if err != nil {
@@ -34,6 +51,7 @@ func (d *Decoder) ReadWord() (o [32]byte, err error) {
 	return o, nil
 }
 
+// reads n bytes
 func (d *Decoder) ReadN(n int) ([]byte, error) {
 	o := make([]byte, n)
 	_, err := d.Read(o[:])
@@ -54,22 +72,6 @@ func (d *Decoder) ReadNPadRight32(n int) ([]byte, error) {
 		return nil, err
 	}
 	_, err = d.ReadN(diff)
-	if err != nil {
-		return nil, err
-	}
-	return o, nil
-}
-func (d *Decoder) ReadNPadLeft32(n int) ([]byte, error) {
-	diff := 32 - (n % 32)
-	if diff == 32 {
-		diff = 0
-	}
-	_, err := d.ReadN(diff)
-	if err != nil {
-		return nil, err
-	}
-	o := make([]byte, n)
-	_, err = d.Read(o[:])
 	if err != nil {
 		return nil, err
 	}
@@ -174,6 +176,7 @@ func (d *Decoder) ReadUint16() (uint16, error) {
 
 func (d *Decoder) ReadDynamic() (*Decoder, error) {
 	offset, err := d.ReadBigUint()
+	//fmt.Println(offset)
 	if err != nil {
 		return nil, err
 	}
@@ -201,13 +204,6 @@ func (d *Decoder) ReadDynamicLength() (*Decoder, int, error) {
 	return NewDecoder(dec1.xs[32:]), l, nil
 }
 
-func (d *Decoder) Remaining() []byte {
-	if d.cur > len(d.xs) {
-		return nil
-	}
-	return d.xs[d.cur:]
-}
-
 func (d *Decoder) ReadString() (string, error) {
 	offset, err := d.ReadBigUint()
 	if err != nil {
@@ -227,4 +223,35 @@ func (d *Decoder) ReadString() (string, error) {
 		return "", err
 	}
 	return string(bts), nil
+}
+
+func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
+	startByte := d.cur
+	switch whence {
+	case io.SeekStart:
+		startByte = int(offset)
+	case io.SeekCurrent:
+		startByte = d.cur + int(offset)
+	case io.SeekEnd:
+		startByte = len(d.xs) - int(offset)
+	}
+	if startByte < 0 || startByte > len(d.xs) {
+		return int64(startByte), errors.New("invalid seek offset")
+	}
+	d.cur = startByte
+	return int64(startByte), nil
+}
+
+func (d *Decoder) EnterDynamic() (*Decoder, error) {
+	// assumed that currently at a pointer element
+	val, err := d.ReadInt()
+	if err != nil {
+		return nil, err
+	}
+	dym := &Decoder{
+		xs:  d.xs[d.cur:],
+		cur: 0,
+	}
+	d.Seek(int64(val), io.SeekCurrent)
+	return dym, nil
 }

@@ -11,6 +11,46 @@ func TestSigBuilders(t *testing.T) {
 	assert.EqualValues(t, SIG("burn", UINT256), "burn(uint256)")
 	assert.EqualValues(t, SLICE(TUPLE(UINT256, UINT256)), "(uint256,uint256)[]")
 	assert.EqualValues(t, SLICE(SLICE(UINT256)), "uint256[][]")
+	assert.EqualValues(t, ARRAY(UINT, 4), "uint256[4]")
+}
+
+func TestFixedArray(t *testing.T) {
+	tn := ARRAY(UINT, 4)
+	assert.False(t, tn.IsDynamic())
+	tn = ARRAY(BYTES, 3)
+	assert.True(t, tn.IsDynamic())
+}
+
+func TestUnslice(t *testing.T) {
+	tn1, l1 := SLICE(UINT).UnSlice()
+	assert.EqualValues(t, tn1, "uint256")
+	assert.Equal(t, 0, l1)
+
+	tn2, l2 := ARRAY(UINT, 14).UnSlice()
+	assert.EqualValues(t, tn2, "uint256")
+	assert.Equal(t, 14, l2)
+
+	// nested
+	tn3, l3 := SLICE(ARRAY(BYTES3, 3)).UnSlice()
+	assert.EqualValues(t, tn3, "bytes3[3]")
+	assert.Equal(t, 0, l3)
+
+	tn4, l4 := ARRAY(SLICE(UINT), 4).UnSlice()
+	assert.EqualValues(t, tn4, "uint256[]")
+	assert.Equal(t, 4, l4)
+}
+
+func TestIsDynamic(t *testing.T) {
+	tn := BYTES
+	assert.True(t, tn.IsDynamic())
+	tn = SLICE(UINT)
+	assert.True(t, tn.IsDynamic())
+	tn = STRING
+	assert.True(t, tn.IsDynamic())
+	tn = TUPLE(INT, ARRAY(STRING, 5))
+	assert.True(t, tn.IsDynamic())
+	tn = TUPLE(ADDRESS, ARRAY(UINT, 3))
+	assert.False(t, tn.IsDynamic())
 }
 
 func BenchmarkGenerateSignature(b *testing.B) {
