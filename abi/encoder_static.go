@@ -12,8 +12,6 @@ func (d *Builder) Uint256(a *uint256.Int) *Builder {
 	return d
 }
 
-}
-
 func (d *Builder) Address(a common.Address) *Builder {
 	d.Word(a[:])
 	return d
