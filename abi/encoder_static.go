@@ -7,9 +7,11 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func (d *Builder) BigUint(a *uint256.Int) *Builder {
+func (d *Builder) Uint256(a *uint256.Int) *Builder {
 	d.Word(a.Bytes())
 	return d
+}
+
 }
 
 func (d *Builder) Address(a common.Address) *Builder {
@@ -67,4 +69,9 @@ func (d *Builder) FixedBytes(l int, s []byte) *Builder {
 		panic("input length mismatch")
 	}
 	return d.PadRight(s)
+}
+
+// DEPRECATED
+func (d *Builder) BigUint(a *uint256.Int) *Builder {
+	return d.BigUint(a)
 }
