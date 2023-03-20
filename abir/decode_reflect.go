@@ -10,6 +10,10 @@ import (
 	"gfx.cafe/open/ghost/abi"
 )
 
+func DecodeBytes(xs []byte, v any, hint ...abi.TypeName) (err error) {
+	return Decode(abi.NewDecoder(xs), v, hint...)
+}
+
 func DecodeInto(d *abi.Decoder, v any) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
