@@ -1,4 +1,4 @@
-package abi
+package abir
 
 import (
 	"math/big"

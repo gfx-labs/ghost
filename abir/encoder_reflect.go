@@ -1,4 +1,4 @@
-package abi
+package abir
 
 import (
 	"fmt"
@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"strings"
 
+	"gfx.cafe/open/ghost/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
-func (b *Builder) Encode(v any, args ...TypeName) (err error) {
+func Encode(b *abi.Builder, v any, args ...abi.TypeName) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
 			err = fmt.Errorf("panic while encoding: %v", err2)
@@ -26,7 +27,7 @@ func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 	case 0:
 		return fmt.Errorf("Nothing to encode")
 	case 1:
-		return b.encode(args[0], val)
+		return encode(b, args[0], val)
 	default:
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to encode, but got '%v'", val.Kind())
@@ -34,7 +35,7 @@ func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 		//fmt.Println(args)
 		for i := 0; i < len(args); i++ {
 			//fmt.Printf("%s : %v\n", args[i], val.Field(i))
-			err = b.encode(args[i], val.Field(i))
+			err = encode(b, args[i], val.Field(i))
 			if err != nil {
 				return err
 			}
@@ -43,12 +44,12 @@ func (b *Builder) Encode(v any, args ...TypeName) (err error) {
 	}
 }
 
-func (b *Builder) EncodeArray(t TypeName, l int, v reflect.Value) error {
+func EncodeArray(b *abi.Builder, t abi.TypeName, l int, v reflect.Value) error {
 	if l != v.Len() {
 		return fmt.Errorf("length mismatch")
 	}
 	for i := 0; i < l; i++ {
-		err := b.encode(t, v.Index(i))
+		err := encode(b, t, v.Index(i))
 		if err != nil {
 			return err
 		}
@@ -58,7 +59,7 @@ func (b *Builder) EncodeArray(t TypeName, l int, v reflect.Value) error {
 
 // t = function signature
 // v = golang type containing the values to encode
-func (b *Builder) encode(t TypeName, v reflect.Value) error {
+func encode(b *abi.Builder, t abi.TypeName, v reflect.Value) error {
 	st := string(t)
 	switch {
 	case t.IsTuple():
@@ -68,7 +69,7 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 		cur := b.EnterTuple()
 		targs := t.TupleArgs()
 		for i := 0; i < v.NumField(); i++ {
-			err := cur.encode(targs[i], v.Field(i))
+			err := encode(cur, targs[i], v.Field(i))
 			if err != nil {
 				return err
 			}
@@ -84,7 +85,7 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 			return fmt.Errorf("solidity array length mismatch query: %v target: %v", l, v.Len())
 		}
 		cur := b.EnterArray(tn, l)
-		err := cur.EncodeArray(tn, l, v)
+		err := EncodeArray(cur, tn, l, v)
 		if err != nil {
 			return err
 		}
@@ -96,22 +97,22 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 		}
 		tn, _ := t.UnSlice()
 		cur := b.EnterDynamicArray()
-		err := cur.EncodeArray(tn, v.Len(), v)
+		err := EncodeArray(cur, tn, v.Len(), v)
 		if err != nil {
 			return err
 		}
 		cur.Exit()
 		return nil
-	case t == ADDRESS:
-		err := b.encodeReflectAddress(v)
+	case t == abi.ADDRESS:
+		err := encodeReflectAddress(b, v)
 		return err
-	case t == BOOL:
+	case t == abi.BOOL:
 		b.WriteBool(v.Bool())
 		return nil
-	case t == STRING:
+	case t == abi.STRING:
 		b.WriteString(v.String())
 		return nil
-	case t == BYTES:
+	case t == abi.BYTES:
 		b.WriteBytes(v.String())
 		return nil
 	case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):
@@ -153,10 +154,10 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 			b.WriteBigInt(big.NewInt(i))
 			return nil
 		}
-	case strings.HasPrefix(st, "bytes") || t == FUNCTION:
+	case strings.HasPrefix(st, "bytes") || t == abi.FUNCTION:
 		var amt int
 		var err error
-		if t == FUNCTION {
+		if t == abi.FUNCTION {
 			amt = 24
 		} else {
 			bts := strings.TrimPrefix(st, "bytes")
@@ -165,7 +166,7 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 				return err
 			}
 		}
-		return b.encodeReflectBytes(amt, v)
+		return encodeReflectBytes(b, amt, v)
 	default:
 		return fmt.Errorf("encountered unknown type: %s", st)
 	}
@@ -173,7 +174,7 @@ func (b *Builder) encode(t TypeName, v reflect.Value) error {
 
 // n = number of bytes
 // will panic if not string or byte slice/array
-func (b *Builder) encodeReflectBytes(n int, v reflect.Value) error {
+func encodeReflectBytes(b *abi.Builder, n int, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.String:
 		b.WriteFixedBytes(n, []byte(v.String()))
@@ -185,7 +186,7 @@ func (b *Builder) encodeReflectBytes(n int, v reflect.Value) error {
 	return nil
 }
 
-func (b *Builder) encodeReflectAddress(v reflect.Value) error {
+func encodeReflectAddress(b *abi.Builder, v reflect.Value) error {
 	var addr common.Address
 	switch v.Kind() {
 	case reflect.String:

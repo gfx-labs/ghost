@@ -1,9 +1,10 @@
-package abi
+package abir
 
 import (
 	"math/big"
 	"testing"
 
+	"gfx.cafe/open/ghost/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,8 +22,8 @@ func TestEncodeReflectSimple(t *testing.T) {
 		C: 1234,
 		D: 1555,
 	}
-	b := &Builder{}
-	err := b.Encode(r, INT, INT, INT, INT)
+	b := new(abi.Builder)
+	err := Encode(b, r, abi.INT, abi.INT, abi.INT, abi.INT)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +32,7 @@ func TestEncodeReflectSimple(t *testing.T) {
 00000000000000000000000000000000000000000000000000000000000003e9
 0000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000004d2
-0000000000000000000000000000000000000000000000000000000000000613`, PrettyHex(ans))
+0000000000000000000000000000000000000000000000000000000000000613`, abi.PrettyHex(ans))
 }
 
 func TestEncoderDynamicReflect(t *testing.T) {
@@ -47,8 +48,8 @@ func TestEncoderDynamicReflect(t *testing.T) {
 		C: []byte("1234567890"),
 		D: "Hello, world!",
 	}
-	b := &Builder{}
-	err := b.Encode(r, INT64, SLICE(UINT64), BYTES10, STRING)
+	b := new(abi.Builder)
+	err := Encode(b, r, abi.INT64, abi.SLICE(abi.UINT64), abi.BYTES10, abi.STRING)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +63,7 @@ func TestEncoderDynamicReflect(t *testing.T) {
 0000000000000000000000000000000000000000000000000000000000000456
 0000000000000000000000000000000000000000000000000000000000000789
 000000000000000000000000000000000000000000000000000000000000000d
-48656c6c6f2c20776f726c642100000000000000000000000000000000000000`, PrettyHex(ans))
+48656c6c6f2c20776f726c642100000000000000000000000000000000000000`, abi.PrettyHex(ans))
 }
 
 func TestEncodeComplexReflect(t *testing.T) {
@@ -76,8 +77,8 @@ func TestEncodeComplexReflect(t *testing.T) {
 		B: []uint{0x21, 0x22, 0x23},
 		C: [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"},
 	}
-	b := &Builder{}
-	err := b.Encode(r, UINT, SLICE(UINT), ARRAY(BYTES, 2))
+	b := new(abi.Builder)
+	err := Encode(b, r, abi.UINT, abi.SLICE(abi.UINT), abi.ARRAY(abi.BYTES, 2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +97,7 @@ func TestEncodeComplexReflect(t *testing.T) {
 6162636465666768000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000034
 4142434445464748494a4b4c4d4e4f505152535455565758595a414243444546
-4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000`, PrettyHex(ans))
+4748494a4b4c4d4e4f505152535455565758595a000000000000000000000000`, abi.PrettyHex(ans))
 }
 
 func TestEncodeNestedStructReflect(t *testing.T) {
@@ -129,8 +130,12 @@ func TestEncodeNestedStructReflect(t *testing.T) {
 	r.S2[1].T = make([]Q, 3)
 	r.S2[1].T[1] = Q{0x21, 2, 0x22}
 
-	b := &Builder{}
-	err := b.Encode(r, UINT, ARRAY(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8))), 2), SLICE(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8)))), UINT)
+	b := new(abi.Builder)
+	err := Encode(b, r,
+		abi.UINT,
+		abi.ARRAY(abi.TUPLE(abi.ADDRESS, abi.SLICE(abi.TUPLE(abi.UINT, abi.UINT8, abi.UINT8))), 2),
+		abi.SLICE(abi.TUPLE(abi.ADDRESS, abi.SLICE(abi.TUPLE(abi.UINT, abi.UINT8, abi.UINT8)))),
+		abi.UINT)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,5 +173,5 @@ func TestEncodeNestedStructReflect(t *testing.T) {
 0000000000000000000000000000000000000000000000000000000000000022
 0000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000`, PrettyHex(ans))
+0000000000000000000000000000000000000000000000000000000000000000`, abi.PrettyHex(ans))
 }

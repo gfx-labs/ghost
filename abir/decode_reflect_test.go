@@ -1,25 +1,26 @@
-package abi
+package abir
 
 import (
 	"math/big"
 	"testing"
 
+	"gfx.cafe/open/ghost/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBasicTypeReflect(t *testing.T) {
-	dec := hexDecode(`
+	dec := abi.HexDecoder(`
 0000000000000000000000000000000000000000000000000000000000000045
 0000000000000000000000000000000000000000000000000000000000000001`)
 	One := &big.Int{}
 	var Two bool
 
-	err := dec.Decode(One, INT192)
+	err := Decode(dec, One, abi.INT192)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = dec.Decode(&Two, BOOL)
+	err = Decode(dec, &Two, abi.BOOL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,10 +30,10 @@ func TestBasicTypeReflect(t *testing.T) {
 }
 
 func TestAddressReflect(t *testing.T) {
-	dec := hexDecode(
+	dec := abi.HexDecoder(
 		`0000000000000000000000000000000000000000000000000000000000001234`)
 	var addr common.Address
-	err := dec.Decode(&addr, ADDRESS)
+	err := Decode(dec, &addr, abi.ADDRESS)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,8 +58,8 @@ func TestDynamicReflect(t *testing.T) {
 		D string  `abi:"string"`
 	}
 	var r f
-	dec := hexDecode(hex)
-	err := dec.Decode(&r, INT64, SLICE(UINT64), BYTES10, STRING)
+	dec := abi.HexDecoder(hex)
+	err := Decode(dec, &r, abi.INT64, abi.SLICE(abi.UINT64), abi.BYTES10, abi.STRING)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,8 +69,8 @@ func TestDynamicReflect(t *testing.T) {
 	assert.EqualValues(t, "Hello, world!", r.D)
 
 	var r2 f
-	dec2 := hexDecode(hex)
-	err2 := dec2.DecodeInto(&r2)
+	dec2 := abi.HexDecoder(hex)
+	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)
 	}
@@ -92,16 +93,16 @@ func TestSimpleReflect(t *testing.T) {
 		B []uint `abi:"uint256[]"`
 	}
 	var r f
-	dec := hexDecode(hex)
-	err := dec.Decode(&r, UINT, SLICE(UINT))
+	dec := abi.HexDecoder(hex)
+	err := Decode(dec, &r, abi.UINT, abi.SLICE(abi.UINT))
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.EqualValues(t, uint(7), r.A)
 	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r.B)
 	var r2 f
-	dec2 := hexDecode(hex)
-	err2 := dec2.DecodeInto(&r2)
+	dec2 := abi.HexDecoder(hex)
+	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)
 	}
@@ -138,8 +139,8 @@ func TestComplexReflect(t *testing.T) {
 		C [2]string `abi:"bytes[2]"`
 	}
 	var r f
-	dec := hexDecode(hex)
-	err := dec.Decode(&r, UINT, SLICE(UINT), ARRAY(BYTES, 2))
+	dec := abi.HexDecoder(hex)
+	err := Decode(dec, &r, abi.UINT, abi.SLICE(abi.UINT), abi.ARRAY(abi.BYTES, 2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,8 +149,8 @@ func TestComplexReflect(t *testing.T) {
 	assert.EqualValues(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.C)
 
 	var r2 f
-	dec2 := hexDecode(hex)
-	err2 := dec2.DecodeInto(&r2)
+	dec2 := abi.HexDecoder(hex)
+	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)
 	}
@@ -226,8 +227,12 @@ func TestStructComplex(t *testing.T) {
 		B  uint
 	}
 	var r f
-	dec := hexDecode(hex)
-	err := dec.Decode(&r, UINT, ARRAY(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8))), 2), SLICE(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8)))), UINT)
+	dec := abi.HexDecoder(hex)
+	err := Decode(dec, &r,
+		abi.UINT,
+		abi.ARRAY(abi.TUPLE(abi.ADDRESS, abi.SLICE(abi.TUPLE(abi.UINT, abi.UINT8, abi.UINT8))), 2),
+		abi.SLICE(abi.TUPLE(abi.ADDRESS, abi.SLICE(abi.TUPLE(abi.UINT, abi.UINT8, abi.UINT8)))),
+		abi.UINT)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,8 +259,8 @@ func TestStructComplex(t *testing.T) {
 	assert.EqualValues(t, uint(8), r.B)
 
 	var r2 f
-	dec2 := hexDecode(hex)
-	err2 := dec2.DecodeInto(&r2)
+	dec2 := abi.HexDecoder(hex)
+	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)
 	}

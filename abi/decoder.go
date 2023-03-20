@@ -1,9 +1,11 @@
 package abi
 
 import (
+	"encoding/hex"
 	"errors"
 	"io"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -19,6 +21,19 @@ var (
 type Decoder struct {
 	xs  []byte
 	cur int
+}
+
+func HexDecoder(s string) *Decoder {
+	s = strings.TrimPrefix(s, "0x")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, `	`, "")
+	ans, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return NewDecoder(ans)
 }
 
 func NewDecoder(xs []byte) *Decoder {
