@@ -65,7 +65,7 @@ func TestEncodeDynamicComplex(t *testing.T) {
 		EnterDynamicArray().Int(3).Exit().
 		Exit().
 		EnterDynamicArray().
-		String("one").String("two").String("three").
+		DString("one").DString("two").DString("three").
 		Exit().
 		Finish()
 	assert.Equal(t, `
@@ -94,7 +94,7 @@ func TestEncodeDynamicComplex(t *testing.T) {
 func TestEncodeString(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		String("hello!").
+		DString("hello!").
 		Int(4414).
 		Finish()
 	assert.Equal(t, `
@@ -107,7 +107,7 @@ func TestEncodeString(t *testing.T) {
 func TestEncodeLongString(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		String("hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello!  ").
+		DString("hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello!  ").
 		Int(4414).
 		Finish()
 	assert.Equal(t, `
@@ -129,10 +129,10 @@ func TestEncodeNestedDynamic(t *testing.T) {
 	b := &Builder{}
 	ans := b.
 		EnterDynamicArray().
-		String("hello!").
-		String("hello?").
-		String("hello.").
-		String("hello,").
+		DString("hello!").
+		DString("hello?").
+		DString("hello.").
+		DString("hello,").
 		Exit().
 		Int(4414).
 		Finish()
@@ -179,7 +179,7 @@ func TestDynamicTuple(t *testing.T) {
 	ans := b.
 		Bool(true).
 		EnterTuple().
-		Bytes("abcd").
+		Bytes([]byte("abcd")).
 		EnterArray(UINT256, 3).Uint(11).Uint(12).Uint(13).Exit().
 		Exit().
 		EnterArray(BYTES32, 2).FixedBytes(32, []byte("a")).FixedBytes(32, []byte("b")).Exit().
@@ -291,9 +291,9 @@ func TestTripleNestedTuple(t *testing.T) {
 	b := &Builder{}
 	ans := b.Uint(7).
 		EnterTuple().Int(30).EnterArray(TUPLE(INT, TUPLE(STRING, INT)), 3).
-		EnterTuple().Int(5).EnterTuple().String("hi").Int(1).Exit().Exit().
-		EnterTuple().Int(6).EnterTuple().String("hi").Int(2).Exit().Exit().
-		EnterTuple().Int(4).EnterTuple().String("hi").Int(3).Exit().Exit().
+		EnterTuple().Int(5).EnterTuple().DString("hi").Int(1).Exit().Exit().
+		EnterTuple().Int(6).EnterTuple().DString("hi").Int(2).Exit().Exit().
+		EnterTuple().Int(4).EnterTuple().DString("hi").Int(3).Exit().Exit().
 		Exit().Exit().
 		Uint(8).
 		Finish()

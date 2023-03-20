@@ -110,10 +110,17 @@ func encode(b *abi.Builder, t abi.TypeName, v reflect.Value) error {
 		b.Bool(v.Bool())
 		return nil
 	case t == abi.STRING:
-		b.String(v.String())
+		b.DString(v.String())
 		return nil
 	case t == abi.BYTES:
-		b.Bytes(v.String())
+		switch v.Kind() {
+		case reflect.String:
+			b.DString(v.String())
+		case reflect.Slice:
+			b.Bytes(v.Bytes())
+		default:
+			b.Bytes(v.Bytes())
+		}
 		return nil
 	case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):
 		if st[0] == 'u' {

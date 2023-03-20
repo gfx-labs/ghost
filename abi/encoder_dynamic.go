@@ -1,20 +1,20 @@
 package abi
 
-func (d *Builder) String(s string) *Builder {
+func (d *Builder) DString(s string) *Builder {
+	return d.Bytes([]byte(s))
+}
+
+func (d *Builder) Bytes(s []byte) *Builder {
 	dy := d.EnterGroup(len(s), true)
 	i := (len(s) / lnlen) * lnlen
 	if i > 0 {
-		dy.Word([]byte(s[:i]))
+		dy.Word(s[:i])
 	}
 	rem := len(s) - i
 	if rem > 0 {
-		dy.PadRight([]byte(s[i:]))
+		dy.PadRight(s[i:])
 	}
 	return dy.Exit()
-}
-
-func (d *Builder) Bytes(s string) *Builder {
-	return d.String(s)
 }
 
 // fixed size array
