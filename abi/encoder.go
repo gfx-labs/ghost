@@ -38,6 +38,17 @@ func (d *Builder) Mem() Memory {
 	return &d.bm
 }
 
+// generic builder writer methods
+func (d *Builder) PadRight(xs []byte) *Builder {
+	d.Mem().Put(-1, padright(xs))
+	return d
+}
+
+func (d *Builder) Word(xs []byte) *Builder {
+	d.Mem().Put(-1, padleft(xs))
+	return d
+}
+
 // finish closes all children, and returns the result slice
 func (d *Builder) Finish(prefix ...[]byte) []byte {
 	if d.children != nil {
@@ -87,15 +98,4 @@ func reorder(children []*Builder) []*Builder {
 		return i < j
 	})
 	return children
-}
-
-// generic builder writer methods
-func (d *Builder) PadRight(xs []byte) *Builder {
-	d.Mem().Put(-1, padright(xs))
-	return d
-}
-
-func (d *Builder) Word(xs []byte) *Builder {
-	d.Mem().Put(-1, padleft(xs))
-	return d
 }

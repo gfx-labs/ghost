@@ -156,7 +156,7 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 		}
 		if t.IsDynamic() {
 			// read dynamic offset
-			cur, err2 := dec.ReadDynamic()
+			cur, err2 := dec.Dynamic()
 			if err2 != nil {
 				return err2
 			}
@@ -168,7 +168,7 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 			return fmt.Errorf("cannot decode %s into %v", t, target.Type())
 		}
 		// read dynamic offset
-		cur, l, err2 := dec.ReadDynamicLength()
+		cur, l, err2 := dec.DynamicLength()
 		if err2 != nil {
 			return err2
 		}
@@ -184,7 +184,7 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 			return fmt.Errorf("solidity array length mismatch query: %v target: %v", l, target.Len())
 		}
 		if tn.IsDynamic() {
-			cur, err2 := dec.ReadDynamic()
+			cur, err2 := dec.Dynamic()
 			if err2 != nil {
 				return err2
 			}
@@ -195,13 +195,13 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 		var ui *big.Int
 		var err error
 		if st[0] == 'u' {
-			uib, err := dec.ReadBigUint()
+			uib, err := dec.Uint256()
 			if err != nil {
 				return err
 			}
 			ui = uib.ToBig()
 		} else {
-			ui, err = dec.ReadBigInt()
+			ui, err = dec.BigInt()
 			if err != nil {
 				return err
 			}
@@ -212,33 +212,33 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 		}
 		return nil
 	case t == abi.ADDRESS:
-		addr, err := dec.ReadAddress()
+		addr, err := dec.Address()
 		if err != nil {
 			return err
 		}
 		return reflectAddress(t, addr, target)
 	case t == abi.BOOL:
-		bl, err := dec.ReadBool()
+		bl, err := dec.Bool()
 		if err != nil {
 			return err
 		}
 		return reflectBool(t, bl, target)
 	case t == abi.STRING, t == abi.BYTES:
-		str, err := dec.ReadString()
+		str, err := dec.String()
 		if err != nil {
 			return err
 		}
 		return reflectString(t, str, target)
 	//case t == BYTES:
-	// sub, err := dec.ReadDynamic()
+	// sub, err := dec.Dynamic()
 	// if err != nil {
 	// 	return err
 	// }
-	// l, err := sub.ReadInt()
+	// l, err := sub.Int()
 	// if err != nil {
 	// 	return err
 	// }
-	// bts, err := sub.ReadN(l)
+	// bts, err := sub.N(l)
 	// if err != nil {
 	// 	return err
 	// }
