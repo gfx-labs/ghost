@@ -12,8 +12,14 @@ type TypeName string
 func (t TypeName) IsSlice() bool {
 	return strings.HasSuffix(string(t), "[]")
 }
+
+func (t TypeName) IsFixedSlice() bool {
+	match, _ := regexp.MatchString(".*\\[[0-9]+\\]", string(t))
+	return match
+}
+
 func (t TypeName) IsTuple() bool {
-	return strings.HasPrefix(string(t), "(")
+	return strings.HasPrefix(string(t), "(") && strings.HasSuffix(string(t), ")")
 }
 
 func (t TypeName) IsSimple() bool {
@@ -28,6 +34,7 @@ func (t TypeName) IsNumber() bool {
 	}
 	return false
 }
+
 func (t TypeName) IsUnsigned() bool {
 	if len(t) == 0 {
 		return false
@@ -88,12 +95,20 @@ func (t TypeName) TupleArgs() []TypeName {
 	}
 }
 
+func ARRAY(t TypeName, n int) TypeName {
+	return TypeName(string(t) + "[" + strconv.Itoa(n) + "]")
+}
+
 func SLICE(t TypeName) TypeName {
 	return TypeName(t + "[]")
 }
 
-func (t TypeName) UnSlice() TypeName {
-	return TypeName(strings.TrimSuffix(string(t), "[]"))
+func (t TypeName) UnSlice() (TypeName, int) {
+	st := string(t)
+	i := strings.LastIndexByte(st, '[')
+	l, _ := strconv.Atoi(st[i+1 : len(st)-1])
+
+	return TypeName(st[:i]), l
 }
 
 func FIXED(M, N int) TypeName {
@@ -128,6 +143,58 @@ func TUPLE(elems ...TypeName) TypeName {
 	return TypeName(b.String())
 }
 
+func pack(elems ...TypeName) TypeName {
+	if len(elems) == 1 {
+		return elems[0]
+	}
+	var b strings.Builder
+	n := len(elems) - 1
+	for i := 0; i < len(elems); i++ {
+		n += len(elems[i])
+	}
+	b.Grow(n)
+	b.WriteString(string(elems[0]))
+	for _, s := range elems[1:] {
+		b.WriteRune(',')
+		b.WriteString(string(s))
+	}
+	return TypeName(b.String())
+}
+
+func unpack(t TypeName) []TypeName {
+	s := string(t)
+	n := len(s) / 6
+	if 16 > n {
+		n = 16
+	}
+	out := make([]TypeName, 0, n)
+	str := strings.NewReader(s)
+	var cur strings.Builder
+	state := 0
+	for {
+		r, _, err := str.ReadRune()
+		if err != nil {
+			return out
+		}
+		if state == 0 && r == ')' {
+			out = append(out, TypeName(strings.TrimSpace(cur.String())))
+			return out
+		}
+		if r == '(' {
+			state = state + 1
+		}
+		if state > 0 && r == ')' {
+			state = state - 1
+		}
+		if state == 0 && r == ',' {
+			out = append(out, TypeName(strings.TrimSpace(cur.String())))
+			cur.Reset()
+		} else {
+			cur.WriteRune(r)
+		}
+	}
+}
+
 const (
 	NIL TypeName = ""
 
@@ -138,6 +205,7 @@ const (
 )
 
 const (
+	UINT    TypeName = "uint256"
 	UINT8   TypeName = "uint8"
 	UINT16  TypeName = "uint16"
 	UINT24  TypeName = "uint24"
@@ -170,6 +238,7 @@ const (
 	UINT240 TypeName = "uint240"
 	UINT248 TypeName = "uint248"
 	UINT256 TypeName = "uint256"
+	INT     TypeName = "int256"
 	INT8    TypeName = "int8"
 	INT16   TypeName = "int16"
 	INT24   TypeName = "int24"
