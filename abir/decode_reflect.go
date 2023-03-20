@@ -30,8 +30,8 @@ func DecodeInto(d *abi.Decoder, v any) (err error) {
 
 	val = val.Elem()
 	tn := CreateTypeName(val.Type())
-	//fmt.Println(tn)
-	if val.Kind() == reflect.Struct {
+	switch val.Kind() {
+	case reflect.Struct, reflect.Pointer:
 		return Decode(d, v, tn.TupleArgs()...)
 	}
 	return Decode(d, v, tn)
@@ -47,16 +47,15 @@ func CreateTypeName(t reflect.Type) abi.TypeName {
 	case reflect.Array:
 		return abi.ARRAY(CreateTypeName(t.Elem()), t.Len())
 	case reflect.Struct:
-		args := make([]abi.TypeName, t.NumField())
+		args := make([]abi.TypeName, 0, t.NumField())
 		for i := 0; i < t.NumField(); i++ {
-			tag := t.Field(i).Tag.Get("abi")
+			tag, _ := parseTag(t.Field(i).Tag.Get("abi"))
 			if tag == "-" {
 				continue
-			}
-			if tag != "" {
-				args[i] = abi.TypeName(tag)
+			} else if tag != "" {
+				args = append(args, abi.TypeName(tag))
 			} else {
-				args[i] = CreateTypeName(t.Field(i).Type)
+				args = append(args, CreateTypeName(t.Field(i).Type))
 			}
 		}
 		return abi.TUPLE(args...)
@@ -102,12 +101,20 @@ func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) {
 		}
 		//fmt.Println(args)
 		//return d.decode(TUPLE(args...), val)
+		fidx := 0
 		for i := 0; i < len(args); i++ {
 			//fmt.Printf("%v -> %v\n", args[i], val.Field(i))
-			err = decode(d, args[i], val.Field(i))
+		skiptag:
+			tag, _ := parseTag(val.Type().Field(fidx).Tag.Get("abi"))
+			if tag == "-" {
+				fidx = fidx + 1
+				goto skiptag
+			}
+			err = decode(d, args[i], val.Field(fidx))
 			if err != nil {
 				return err
 			}
+			fidx++
 		}
 		return nil
 	}
