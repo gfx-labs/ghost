@@ -269,17 +269,3 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	d.cur = startByte
 	return int64(startByte), nil
 }
-
-func (d *Decoder) EnterDynamic() (*Decoder, error) {
-	// assumed that currently at a pointer element
-	val, err := d.Int()
-	if err != nil {
-		return nil, err
-	}
-	dym := &Decoder{
-		xs:  d.xs[d.cur:],
-		cur: 0,
-	}
-	d.Seek(int64(val), io.SeekCurrent)
-	return dym, nil
-}
