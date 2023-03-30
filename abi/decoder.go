@@ -41,6 +41,9 @@ func NewDecoder(xs []byte) *Decoder {
 		xs: xs,
 	}
 }
+func (d *Decoder) Remaining() []byte {
+	return d.xs[d.cur:]
+}
 
 func (d *Decoder) Read(o []byte) (int, error) {
 	if (len(d.xs) - d.cur) < len(o) {
