@@ -45,6 +45,32 @@ func (d *Decoder) Remaining() []byte {
 	return d.xs[d.cur:]
 }
 
+func (d *Decoder) Peek(o []byte) (int, error) {
+	if (len(d.xs) - d.cur) < len(o) {
+		return 0, ErrUnexpectedEOF
+	}
+	n := copy(o, d.xs[d.cur:d.cur+len(o)])
+	return n, nil
+}
+
+// reads 32 bytes
+func (d *Decoder) PeekWord() (o [32]byte, err error) {
+	_, err = d.Peek(o[:])
+	if err != nil {
+		return
+	}
+	return o, nil
+}
+
+func (d *Decoder) PeekUint256() (*uint256.Int, error) {
+	b, err := d.PeekWord()
+	if err != nil {
+		return nil, err
+	}
+	ret := new(uint256.Int).SetBytes(b[:])
+	return ret, nil
+}
+
 func (d *Decoder) Read(o []byte) (int, error) {
 	if (len(d.xs) - d.cur) < len(o) {
 		return 0, ErrUnexpectedEOF
