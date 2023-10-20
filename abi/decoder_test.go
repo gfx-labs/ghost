@@ -8,7 +8,7 @@ import (
 )
 
 func TestBasic(t *testing.T) {
-	dec := hexDecode(`
+	dec := HexDecoder(`
 0000000000000000000000000000000000000000000000000000000000000045
 0000000000000000000000000000000000000000000000000000000000000001`)
 	type baz struct {
@@ -17,11 +17,11 @@ func TestBasic(t *testing.T) {
 	}
 	var r baz
 	var err error
-	r.x, err = dec.ReadInt()
+	r.x, err = dec.Int()
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.y, err = dec.ReadBool()
+	r.y, err = dec.Bool()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestSimple(t *testing.T) {
-	dec := hexDecode(`
+	dec := HexDecoder(`
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000040
 0000000000000000000000000000000000000000000000000000000000000003
@@ -43,21 +43,21 @@ func TestSimple(t *testing.T) {
 	}
 	var r f
 	var err error
-	r.a, err = dec.ReadUint()
+	r.a, err = dec.Uint()
 	if err != nil {
 		t.Fatal("r.a", err)
 	}
-	arr_b, err := dec.ReadDynamic()
+	arr_b, err := dec.Dynamic()
 	if err != nil {
 		t.Fatal("r.b", err)
 	}
-	array_len, err := arr_b.ReadInt()
+	array_len, err := arr_b.Int()
 	if err != nil {
 		t.Fatal("r.b_len", err)
 	}
 	r.b = make([]uint, 0, array_len)
 	for i := 0; i < array_len; i++ {
-		val, err := arr_b.ReadUint()
+		val, err := arr_b.Uint()
 		if err != nil {
 			t.Fatal("r.b_inside", err)
 		}
@@ -68,7 +68,7 @@ func TestSimple(t *testing.T) {
 }
 
 func TestDynamic(t *testing.T) {
-	dec := hexDecode(`
+	dec := HexDecoder(`
 0000000000000000000000000000000000000000000000000000000000000123
 0000000000000000000000000000000000000000000000000000000000000080
 3132333435363738393000000000000000000000000000000000000000000000
@@ -86,21 +86,21 @@ func TestDynamic(t *testing.T) {
 	}
 	var r f
 	var err error
-	r.a, err = dec.ReadInt()
+	r.a, err = dec.Int()
 	if err != nil {
 		t.Fatal("r.a", err)
 	}
-	arr_b, err := dec.ReadDynamic()
+	arr_b, err := dec.Dynamic()
 	if err != nil {
 		t.Fatal("r.b", err)
 	}
-	array_len, err := arr_b.ReadInt()
+	array_len, err := arr_b.Int()
 	if err != nil {
 		t.Fatal("r.b_len", err)
 	}
 	r.b = make([]uint32, 0, array_len)
 	for i := 0; i < array_len; i++ {
-		val, err := arr_b.ReadUint()
+		val, err := arr_b.Uint()
 		if err != nil {
 			t.Fatal("r.b_inside", err)
 			t.Fatal(err)
@@ -111,11 +111,11 @@ func TestDynamic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	arr_d, err := dec.ReadDynamic()
+	arr_d, err := dec.Dynamic()
 	if err != nil {
 		t.Fatal("arr_d", err)
 	}
-	str_len, err := arr_d.ReadInt()
+	str_len, err := arr_d.Int()
 	if err != nil {
 		t.Fatal("str_len", err)
 	}
@@ -132,7 +132,7 @@ func TestDynamic(t *testing.T) {
 }
 
 func TestStructSimple(t *testing.T) {
-	dec := hexDecode(`
+	dec := HexDecoder(`
 00000000000000000000000000000000000000000000000000000000000ff010
 0000000000000000000000000000000000000000000000000000000000ff0002
 6162636400000000000000000000000000000000000000000000000000000000`)
@@ -143,11 +143,11 @@ func TestStructSimple(t *testing.T) {
 	}
 	var r f
 	var err error
-	r.a, err = dec.ReadInt()
+	r.a, err = dec.Int()
 	if err != nil {
 		t.Fatal("r.a", err)
 	}
-	r.b, err = dec.ReadUint()
+	r.b, err = dec.Uint()
 	if err != nil {
 		t.Fatal("r.b", err)
 	}
@@ -169,7 +169,7 @@ func TestComplex(t *testing.T) {
 	// 0x40, 0x80,
 	// 8, string("abcdefgh"),
 	// 52, string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	dec := hexDecode(`
+	dec := HexDecoder(`
 0000000000000000000000000000000000000000000000000000000000000007
 0000000000000000000000000000000000000000000000000000000000000060
 00000000000000000000000000000000000000000000000000000000000000e0
@@ -191,33 +191,33 @@ func TestComplex(t *testing.T) {
 	}
 	var r f
 	var err error
-	r.a, err = dec.ReadUint()
+	r.a, err = dec.Uint()
 	if err != nil {
 		t.Fatal("r.a", err)
 	}
-	arr_b, err := dec.ReadDynamic()
+	arr_b, err := dec.Dynamic()
 	if err != nil {
 		t.Fatal("r.b", err)
 	}
-	array_len, err := arr_b.ReadInt()
+	array_len, err := arr_b.Int()
 	if err != nil {
 		t.Fatal("r.b_len", err)
 	}
 	r.b = make([]uint, 0, array_len)
 	for i := 0; i < array_len; i++ {
-		val, err := arr_b.ReadUint()
+		val, err := arr_b.Uint()
 		if err != nil {
 			t.Fatal("r.b_inside", err)
 			t.Fatal(err)
 		}
 		r.b = append(r.b, uint(val))
 	}
-	arr_c, err := dec.ReadDynamic()
+	arr_c, err := dec.Dynamic()
 	if err != nil {
 		t.Fatal("r.c", err)
 	}
 	for i := 0; i < len(r.c); i++ {
-		val, err := arr_c.ReadString()
+		val, err := arr_c.DString()
 		if err != nil {
 			t.Fatal("r.c_inside", err)
 			t.Fatal(err)
