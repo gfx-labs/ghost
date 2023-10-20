@@ -13,8 +13,10 @@ func (t TypeName) IsSlice() bool {
 	return strings.HasSuffix(string(t), "[]")
 }
 
+var fixedStringRegexCheck = regexp.MustCompile(".*\\[[0-9]+\\]")
+
 func (t TypeName) IsFixedSlice() bool {
-	match, _ := regexp.MatchString(".*\\[[0-9]+\\]", string(t))
+	match := fixedStringRegexCheck.MatchString(string(t))
 	return match
 }
 
@@ -42,6 +44,8 @@ func (t TypeName) IsUnsigned() bool {
 	return t[0] == 'u'
 }
 
+var dynamicRegexCheck = regexp.MustCompile("([a-z]+)\\[[0-9]+\\]")
+
 func (t TypeName) IsDynamic() bool {
 	// tuple check
 	dym := false
@@ -52,7 +56,7 @@ func (t TypeName) IsDynamic() bool {
 		return dym
 	}
 	// T[k] check
-	match, _ := regexp.MatchString("([a-z]+)\\[[0-9]+\\]", string(t))
+	match := dynamicRegexCheck.MatchString(string(t))
 	if match {
 		i := strings.Index(string(t), "[")
 		t1 := TypeName(t[:i])

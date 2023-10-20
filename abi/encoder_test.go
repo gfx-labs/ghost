@@ -12,13 +12,26 @@ func TestEncodePadding(t *testing.T) {
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000010203`, PrettyHex(s))
 }
+func TestEncodeWithFuncSig(t *testing.T) {
+	b := &Builder{}
+	b.Int(1001)
+	b.Int(0)
+	b.Int(1234)
+	b.Int(1555)
+	ans := b.Finish(SIG("swag", UINT, UINT, UINT, UINT).Fn())
+	assert.Equal(t, `6f73b2dd
+00000000000000000000000000000000000000000000000000000000000003e9
+0000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000004d2
+0000000000000000000000000000000000000000000000000000000000000613`, PrettyHex(ans))
+}
 
 func TestEncodeSimple(t *testing.T) {
 	b := &Builder{}
-	b.WriteInt(1001)
-	b.WriteInt(0)
-	b.WriteInt(1234)
-	b.WriteInt(1555)
+	b.Int(1001)
+	b.Int(0)
+	b.Int(1234)
+	b.Int(1555)
 	ans := b.Finish()
 
 	assert.Equal(t, `
@@ -32,9 +45,9 @@ func TestEncodeDynamicSimple(t *testing.T) {
 	b := &Builder{}
 	ans := b.
 		EnterDynamicArray().
-		WriteInt(123).WriteInt(124).
+		Int(123).Int(124).
 		Exit().
-		WriteInt(4414).
+		Int(4414).
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000040
@@ -48,11 +61,11 @@ func TestEncodeDynamicComplex(t *testing.T) {
 	b := &Builder{}
 	ans := b.
 		EnterDynamicArray().
-		EnterDynamicArray().WriteInt(1).WriteInt(2).Exit().
-		EnterDynamicArray().WriteInt(3).Exit().
+		EnterDynamicArray().Int(1).Int(2).Exit().
+		EnterDynamicArray().Int(3).Exit().
 		Exit().
 		EnterDynamicArray().
-		WriteString("one").WriteString("two").WriteString("three").
+		DString("one").DString("two").DString("three").
 		Exit().
 		Finish()
 	assert.Equal(t, `
@@ -81,8 +94,8 @@ func TestEncodeDynamicComplex(t *testing.T) {
 func TestEncodeString(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		WriteString("hello!").
-		WriteInt(4414).
+		DString("hello!").
+		Int(4414).
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000040
@@ -94,8 +107,8 @@ func TestEncodeString(t *testing.T) {
 func TestEncodeLongString(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		WriteString("hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello!  ").
-		WriteInt(4414).
+		DString("hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello! hello!  ").
+		Int(4414).
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000040
@@ -116,12 +129,12 @@ func TestEncodeNestedDynamic(t *testing.T) {
 	b := &Builder{}
 	ans := b.
 		EnterDynamicArray().
-		WriteString("hello!").
-		WriteString("hello?").
-		WriteString("hello.").
-		WriteString("hello,").
+		DString("hello!").
+		DString("hello?").
+		DString("hello.").
+		DString("hello,").
 		Exit().
-		WriteInt(4414).
+		Int(4414).
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000040
@@ -144,12 +157,12 @@ func TestEncodeNestedDynamic(t *testing.T) {
 func TestStaticTuple(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		WriteBool(true).
+		Bool(true).
 		EnterTuple().
-		WriteAddress(common.HexToAddress("0x1111111111222222222233333333334444444444")).
-		EnterArray(UINT256, 3).WriteUint(11).WriteUint(12).WriteUint(13).Exit().
+		Address(common.HexToAddress("0x1111111111222222222233333333334444444444")).
+		EnterArray(UINT256, 3).Uint(11).Uint(12).Uint(13).Exit().
 		Exit().
-		EnterArray(BYTES32, 2).WriteFixedBytes(32, []byte("a")).WriteFixedBytes(32, []byte("b")).Exit().
+		EnterArray(BYTES32, 2).FixedBytes(32, []byte("a")).FixedBytes(32, []byte("b")).Exit().
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000001
@@ -164,12 +177,12 @@ func TestStaticTuple(t *testing.T) {
 func TestDynamicTuple(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		WriteBool(true).
+		Bool(true).
 		EnterTuple().
-		WriteBytes("abcd").
-		EnterArray(UINT256, 3).WriteUint(11).WriteUint(12).WriteUint(13).Exit().
+		Bytes([]byte("abcd")).
+		EnterArray(UINT256, 3).Uint(11).Uint(12).Uint(13).Exit().
 		Exit().
-		EnterArray(BYTES32, 2).WriteFixedBytes(32, []byte("a")).WriteFixedBytes(32, []byte("b")).Exit().
+		EnterArray(BYTES32, 2).FixedBytes(32, []byte("a")).FixedBytes(32, []byte("b")).Exit().
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000001
@@ -187,16 +200,16 @@ func TestDynamicTuple(t *testing.T) {
 func TestStruct(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		WriteUint16(7).
+		Uint16(7).
 		EnterTuple().
-		WriteUint16(8).
-		WriteUint16(9).
+		Uint16(8).
+		Uint16(9).
 		EnterDynamicArray().
-		EnterArray(UINT64, 2).WriteUint(11).WriteUint(0).Exit().
-		EnterArray(UINT64, 2).WriteUint(12).WriteUint(0).Exit().
-		EnterArray(UINT64, 2).WriteUint(0).WriteUint(13).Exit().
+		EnterArray(UINT64, 2).Uint(11).Uint(0).Exit().
+		EnterArray(UINT64, 2).Uint(12).Uint(0).Exit().
+		EnterArray(UINT64, 2).Uint(0).Uint(13).Exit().
 		Exit().
-		WriteUint16(10).
+		Uint16(10).
 		Exit().
 		Finish()
 	assert.Equal(t, `
@@ -218,25 +231,25 @@ func TestStruct(t *testing.T) {
 func TestStruct2(t *testing.T) {
 	b := &Builder{}
 	ans := b.
-		WriteUint(7).
+		Uint(7).
 		EnterArray(TUPLE(ADDRESS, SLICE(TUPLE(UINT, UINT8, UINT8))), 2).
-		EnterTuple().WriteAddress(common.HexToAddress("0x5678")).
-		EnterDynamicArray().EnterTuple().WriteUint(0x11).WriteUint8(1).WriteUint8(0x12).Exit().Exit().
+		EnterTuple().Address(common.HexToAddress("0x5678")).
+		EnterDynamicArray().EnterTuple().Uint(0x11).Uint8(1).Uint8(0x12).Exit().Exit().
 		Exit().
-		EnterTuple().WriteAddress(common.HexToAddress("0x0")).
+		EnterTuple().Address(common.HexToAddress("0x0")).
 		EnterDynamicArray().Exit().Exit().
 		Exit().
 		EnterDynamicArray().
-		EnterTuple().WriteAddress(common.HexToAddress("0x0")).
+		EnterTuple().Address(common.HexToAddress("0x0")).
 		EnterDynamicArray().Exit().Exit().
-		EnterTuple().WriteAddress(common.HexToAddress("0x1234")).
+		EnterTuple().Address(common.HexToAddress("0x1234")).
 		EnterDynamicArray().
-		EnterTuple().WriteUint(0).WriteUint(0).WriteUint(0).Exit().
-		EnterTuple().WriteUint(0x21).WriteUint8(2).WriteUint8(0x22).Exit().
-		EnterTuple().WriteUint(0).WriteUint(0).WriteUint(0).Exit().
+		EnterTuple().Uint(0).Uint(0).Uint(0).Exit().
+		EnterTuple().Uint(0x21).Uint8(2).Uint8(0x22).Exit().
+		EnterTuple().Uint(0).Uint(0).Uint(0).Exit().
 		Exit().Exit().
 		Exit().
-		WriteUint(8).
+		Uint(8).
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000007
@@ -276,13 +289,13 @@ func TestStruct2(t *testing.T) {
 
 func TestTripleNestedTuple(t *testing.T) {
 	b := &Builder{}
-	ans := b.WriteUint(7).
-		EnterTuple().WriteInt(30).EnterArray(TUPLE(INT, TUPLE(STRING, INT)), 3).
-		EnterTuple().WriteInt(5).EnterTuple().WriteString("hi").WriteInt(1).Exit().Exit().
-		EnterTuple().WriteInt(6).EnterTuple().WriteString("hi").WriteInt(2).Exit().Exit().
-		EnterTuple().WriteInt(4).EnterTuple().WriteString("hi").WriteInt(3).Exit().Exit().
+	ans := b.Uint(7).
+		EnterTuple().Int(30).EnterArray(TUPLE(INT, TUPLE(STRING, INT)), 3).
+		EnterTuple().Int(5).EnterTuple().DString("hi").Int(1).Exit().Exit().
+		EnterTuple().Int(6).EnterTuple().DString("hi").Int(2).Exit().Exit().
+		EnterTuple().Int(4).EnterTuple().DString("hi").Int(3).Exit().Exit().
 		Exit().Exit().
-		WriteUint(8).
+		Uint(8).
 		Finish()
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000000007

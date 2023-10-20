@@ -1,9 +1,11 @@
 package abi
 
 import (
+	"encoding/hex"
 	"errors"
 	"io"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -21,19 +23,61 @@ type Decoder struct {
 	cur int
 }
 
+func HexDecoder(s string) *Decoder {
+	s = strings.TrimPrefix(s, "0x")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, `	`, "")
+	ans, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return NewDecoder(ans)
+}
+
 func NewDecoder(xs []byte) *Decoder {
 	return &Decoder{
 		xs: xs,
 	}
 }
+func (d *Decoder) Remaining() []byte {
+	return d.xs[d.cur:]
+}
+
+func (d *Decoder) Peek(o []byte) (int, error) {
+	if (len(d.xs) - d.cur) < len(o) {
+		return 0, ErrUnexpectedEOF
+	}
+	n := copy(o, d.xs[d.cur:d.cur+len(o)])
+	return n, nil
+}
 
 // reads 32 bytes
-func (d *Decoder) ReadWord() (o [32]byte, err error) {
-	_, err = d.Read(o[:])
+func (d *Decoder) PeekWord() (o [32]byte, err error) {
+	_, err = d.Peek(o[:])
 	if err != nil {
 		return
 	}
 	return o, nil
+}
+
+func (d *Decoder) PeekUint256() (*uint256.Int, error) {
+	b, err := d.PeekWord()
+	if err != nil {
+		return nil, err
+	}
+	ret := new(uint256.Int).SetBytes(b[:])
+	return ret, nil
+}
+
+func (d *Decoder) Read(o []byte) (int, error) {
+	if (len(d.xs) - d.cur) < len(o) {
+		return 0, ErrUnexpectedEOF
+	}
+	n := copy(o, d.xs[d.cur:d.cur+len(o)])
+	d.cur = d.cur + len(o)
+	return n, nil
 }
 
 // reads n bytes
@@ -42,6 +86,15 @@ func (d *Decoder) ReadN(n int) ([]byte, error) {
 	_, err := d.Read(o[:])
 	if err != nil {
 		return nil, err
+	}
+	return o, nil
+}
+
+// reads 32 bytes
+func (d *Decoder) ReadWord() (o [32]byte, err error) {
+	_, err = d.Read(o[:])
+	if err != nil {
+		return
 	}
 	return o, nil
 }
@@ -63,16 +116,7 @@ func (d *Decoder) ReadNPadRight32(n int) ([]byte, error) {
 	return o, nil
 }
 
-func (d *Decoder) Read(o []byte) (int, error) {
-	if (len(d.xs) - d.cur) < len(o) {
-		return 0, errors.New("abi: unexpected EOF")
-	}
-	n := copy(o, d.xs[d.cur:d.cur+len(o)])
-	d.cur = d.cur + len(o)
-	return n, nil
-}
-
-func (d *Decoder) ReadBigUint() (*uint256.Int, error) {
+func (d *Decoder) Uint256() (*uint256.Int, error) {
 	b, err := d.ReadWord()
 	if err != nil {
 		return nil, err
@@ -81,7 +125,7 @@ func (d *Decoder) ReadBigUint() (*uint256.Int, error) {
 	return ret, nil
 }
 
-func (d *Decoder) ReadAddress() (common.Address, error) {
+func (d *Decoder) Address() (common.Address, error) {
 	word, err := d.ReadWord()
 	if err != nil {
 		return common.Address{}, err
@@ -90,8 +134,8 @@ func (d *Decoder) ReadAddress() (common.Address, error) {
 	return ans, nil
 }
 
-func (d *Decoder) ReadBigInt() (*big.Int, error) {
-	rt, err := d.ReadBigUint()
+func (d *Decoder) BigInt() (*big.Int, error) {
+	rt, err := d.Uint256()
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +148,8 @@ func (d *Decoder) ReadBigInt() (*big.Int, error) {
 	return ret, nil
 }
 
-func (d *Decoder) ReadBool() (bool, error) {
-	ans, err := d.ReadBigUint()
+func (d *Decoder) Bool() (bool, error) {
+	ans, err := d.Uint256()
 	if err != nil {
 		return false, err
 	}
@@ -115,8 +159,8 @@ func (d *Decoder) ReadBool() (bool, error) {
 	return true, nil
 }
 
-func (d *Decoder) ReadInt() (int, error) {
-	ans, err := d.ReadBigInt()
+func (d *Decoder) Int() (int, error) {
+	ans, err := d.BigInt()
 	if err != nil {
 		return 0, err
 	}
@@ -126,8 +170,8 @@ func (d *Decoder) ReadInt() (int, error) {
 	return int(ans.Int64()), nil
 }
 
-func (d *Decoder) ReadUint() (uint, error) {
-	ans, err := d.ReadBigUint()
+func (d *Decoder) Uint() (uint, error) {
+	ans, err := d.Uint256()
 	if err != nil {
 		return 0, err
 	}
@@ -137,8 +181,8 @@ func (d *Decoder) ReadUint() (uint, error) {
 	return uint(ans.Uint64()), nil
 }
 
-func (d *Decoder) ReadUint8() (uint8, error) {
-	ans, err := d.ReadInt()
+func (d *Decoder) Uint8() (uint8, error) {
+	ans, err := d.Int()
 	if err != nil {
 		return 0, err
 	}
@@ -148,8 +192,8 @@ func (d *Decoder) ReadUint8() (uint8, error) {
 	return uint8(ans), nil
 }
 
-func (d *Decoder) ReadUint16() (uint16, error) {
-	ans, err := d.ReadInt()
+func (d *Decoder) Uint16() (uint16, error) {
+	ans, err := d.Int()
 	if err != nil {
 		return 0, err
 	}
@@ -159,9 +203,8 @@ func (d *Decoder) ReadUint16() (uint16, error) {
 	return uint16(ans), nil
 }
 
-func (d *Decoder) ReadDynamic() (*Decoder, error) {
-	offset, err := d.ReadBigUint()
-	//fmt.Println(offset)
+func (d *Decoder) Dynamic() (*Decoder, error) {
+	offset, err := d.Uint256()
 	if err != nil {
 		return nil, err
 	}
@@ -171,8 +214,8 @@ func (d *Decoder) ReadDynamic() (*Decoder, error) {
 	}
 	return NewDecoder(d.xs[actual:]), nil
 }
-func (d *Decoder) ReadDynamicLength() (*Decoder, int, error) {
-	offset, err := d.ReadBigUint()
+func (d *Decoder) DynamicLength() (*Decoder, int, error) {
+	offset, err := d.Uint256()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -182,15 +225,15 @@ func (d *Decoder) ReadDynamicLength() (*Decoder, int, error) {
 	}
 	// hop over to the new one
 	dec1 := NewDecoder(d.xs[actual:])
-	l, err := dec1.ReadInt()
+	l, err := dec1.Int()
 	if err != nil {
 		return nil, 0, errors.New("abi: len unexpected EOF")
 	}
 	return NewDecoder(dec1.xs[32:]), l, nil
 }
 
-func (d *Decoder) ReadString() (string, error) {
-	offset, err := d.ReadBigUint()
+func (d *Decoder) DString() (string, error) {
+	offset, err := d.Uint256()
 	if err != nil {
 		return "", err
 	}
@@ -199,7 +242,7 @@ func (d *Decoder) ReadString() (string, error) {
 		return "", errors.New("abi: dynamic overflow")
 	}
 	dec := NewDecoder(d.xs[actual:])
-	l, err := dec.ReadUint()
+	l, err := dec.Uint()
 	if err != nil {
 		return "", err
 	}
@@ -225,18 +268,4 @@ func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
 	}
 	d.cur = startByte
 	return int64(startByte), nil
-}
-
-func (d *Decoder) EnterDynamic() (*Decoder, error) {
-	// assumed that currently at a pointer element
-	val, err := d.ReadInt()
-	if err != nil {
-		return nil, err
-	}
-	dym := &Decoder{
-		xs:  d.xs[d.cur:],
-		cur: 0,
-	}
-	d.Seek(int64(val), io.SeekCurrent)
-	return dym, nil
 }

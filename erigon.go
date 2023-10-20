@@ -14,7 +14,6 @@ import (
 
 type ErigonClient interface {
 	ErigonFilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]ErigonLog, error)
-	ErigonGetReceiptsByHash(ctx context.Context, txHash common.Hash) ([]ErigonReceipt, error)
 
 	Client
 }

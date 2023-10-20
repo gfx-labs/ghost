@@ -3,8 +3,8 @@ package evm
 import (
 	"math/big"
 
-	"gfx.cafe/open/ghost/ethtype"
 	"gfx.cafe/open/ghost/evm/bloom"
+	"gfx.cafe/open/ghost/evm/ethtype"
 )
 
 type Address = ethtype.Address

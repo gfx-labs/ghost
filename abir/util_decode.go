@@ -1,12 +1,12 @@
-package abi
+package abir
 
 import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"reflect"
-	"strings"
 
+	"gfx.cafe/open/ghost/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -22,7 +22,7 @@ type SetStringOk interface {
 	SetString(string, int) bool
 }
 
-func reflectBigNumeric(t TypeName, ui *big.Int, target reflect.Value) error {
+func reflectBigNumeric(t abi.TypeName, ui *big.Int, target reflect.Value) error {
 	switch target.Kind() {
 	case reflect.Pointer:
 		if target.Type().AssignableTo(typeBigIntPtr) {
@@ -102,7 +102,7 @@ func reflectBigNumeric(t TypeName, ui *big.Int, target reflect.Value) error {
 	return nil
 }
 
-func reflectAddress(t TypeName, addr common.Address, target reflect.Value) error {
+func reflectAddress(t abi.TypeName, addr common.Address, target reflect.Value) error {
 	switch target.Kind() {
 	case reflect.String:
 		target.SetString(addr.Hex())
@@ -125,7 +125,7 @@ func reflectAddress(t TypeName, addr common.Address, target reflect.Value) error
 	return nil
 }
 
-func reflectBool(t TypeName, bl bool, target reflect.Value) error {
+func reflectBool(t abi.TypeName, bl bool, target reflect.Value) error {
 	switch target.Kind() {
 	case reflect.Bool:
 		target.SetBool(bl)
@@ -153,7 +153,7 @@ func reflectBool(t TypeName, bl bool, target reflect.Value) error {
 	return nil
 }
 
-func reflectString(t TypeName, str string, target reflect.Value) error {
+func reflectString(t abi.TypeName, str string, target reflect.Value) error {
 	switch target.Kind() {
 	case reflect.String:
 		target.SetString(str)
@@ -179,12 +179,12 @@ func reflectString(t TypeName, str string, target reflect.Value) error {
 	return nil
 }
 
-func reflectDynamicBytes(t TypeName, str []byte, target reflect.Value) error {
+func reflectDynamicBytes(t abi.TypeName, str []byte, target reflect.Value) error {
 	target.SetBytes(str)
 	return nil
 }
 
-func reflectFixedBytes(t TypeName, addr []byte, target reflect.Value) error {
+func reflectFixedBytes(t abi.TypeName, addr []byte, target reflect.Value) error {
 	switch target.Kind() {
 	case reflect.String:
 		target.SetString(hex.EncodeToString(addr))
@@ -212,17 +212,4 @@ func reflectFixedBytes(t TypeName, addr []byte, target reflect.Value) error {
 		return fmt.Errorf("could not decode %v into %v", addr, target.Type())
 	}
 	return nil
-}
-
-func hexDecode(s string) *Decoder {
-	s = strings.TrimPrefix(s, "0x")
-	s = strings.ReplaceAll(s, "\n", "")
-	s = strings.ReplaceAll(s, "\r", "")
-	s = strings.ReplaceAll(s, " ", "")
-	s = strings.ReplaceAll(s, `	`, "")
-	ans, err := hex.DecodeString(s)
-	if err != nil {
-		panic(err)
-	}
-	return NewDecoder(ans)
 }
