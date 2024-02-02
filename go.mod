@@ -5,7 +5,6 @@ go 1.21
 toolchain go1.21.3
 
 require (
-	gfx.cafe/util/go/generic v0.0.0-20231226111635-bc00a6a250fb
 	github.com/ethereum/go-ethereum v1.13.11
 	github.com/holiman/uint256 v1.2.4
 	github.com/stretchr/testify v1.8.4
