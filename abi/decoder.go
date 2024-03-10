@@ -233,24 +233,32 @@ func (d *Decoder) DynamicLength() (*Decoder, int, error) {
 }
 
 func (d *Decoder) DString() (string, error) {
-	offset, err := d.Uint256()
-	if err != nil {
-		return "", err
-	}
-	actual := int(offset.Uint64())
-	if len(d.xs) < actual {
-		return "", errors.New("abi: dynamic overflow")
-	}
-	dec := NewDecoder(d.xs[actual:])
-	l, err := dec.Uint()
-	if err != nil {
-		return "", err
-	}
-	bts, err := dec.ReadN(int(l))
+	bts, err := d.Bytes()
 	if err != nil {
 		return "", err
 	}
 	return string(bts), nil
+}
+
+func (d *Decoder) Bytes() ([]byte, error) {
+	offset, err := d.Uint256()
+	if err != nil {
+		return nil, err
+	}
+	actual := int(offset.Uint64())
+	if len(d.xs) < actual {
+		return nil, errors.New("abi: dynamic overflow")
+	}
+	dec := NewDecoder(d.xs[actual:])
+	l, err := dec.Uint()
+	if err != nil {
+		return nil, err
+	}
+	bts, err := dec.ReadN(int(l))
+	if err != nil {
+		return nil, err
+	}
+	return bts, nil
 }
 
 func (d *Decoder) Seek(offset int64, whence int) (int64, error) {
