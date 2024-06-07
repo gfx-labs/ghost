@@ -1,7 +1,6 @@
 package abi
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -13,11 +12,28 @@ func (t TypeName) IsSlice() bool {
 	return strings.HasSuffix(string(t), "[]")
 }
 
-var fixedStringRegexCheck = regexp.MustCompile(".*\\[[0-9]+\\]")
-
 func (t TypeName) IsFixedSlice() bool {
-	match := fixedStringRegexCheck.MatchString(string(t))
+	match := regexFixedString(string(t))
 	return match
+}
+
+func (t TypeName) IsDynamic() bool {
+	// tuple check
+	dym := false
+	if t.IsTuple() {
+		for _, arg := range t.TupleArgs() {
+			dym = dym || arg.IsDynamic()
+		}
+		return dym
+	}
+	// T[k] check
+	match := regexDynamic(string(t))
+	if match {
+		i := strings.Index(string(t), "[")
+		t1 := TypeName(t[:i])
+		return t1.IsDynamic()
+	}
+	return t.IsSlice() || t == "bytes" || t == "string"
 }
 
 func (t TypeName) IsTuple() bool {
@@ -42,27 +58,6 @@ func (t TypeName) IsUnsigned() bool {
 		return false
 	}
 	return t[0] == 'u'
-}
-
-var dynamicRegexCheck = regexp.MustCompile("([a-z]+)\\[[0-9]+\\]")
-
-func (t TypeName) IsDynamic() bool {
-	// tuple check
-	dym := false
-	if t.IsTuple() {
-		for _, arg := range t.TupleArgs() {
-			dym = dym || arg.IsDynamic()
-		}
-		return dym
-	}
-	// T[k] check
-	match := dynamicRegexCheck.MatchString(string(t))
-	if match {
-		i := strings.Index(string(t), "[")
-		t1 := TypeName(t[:i])
-		return t1.IsDynamic()
-	}
-	return t.IsSlice() || t == "bytes" || t == "string"
 }
 
 func (t TypeName) TupleArgs() []TypeName {

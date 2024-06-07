@@ -2,13 +2,13 @@ package abi
 
 import (
 	"strings"
+	"sync"
 
-	"gfx.cafe/util/go/generic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var sigCache generic.Map[string, common.Hash]
+var sigCache sync.Map
 
 type Call string
 
@@ -75,7 +75,7 @@ func (s Signature) Args() TypeName {
 
 func (s Signature) Hash() common.Hash {
 	if have, ok := sigCache.Load(string(s)); ok {
-		return have
+		return have.(common.Hash)
 	}
 	ans := common.BytesToHash(crypto.Keccak256([]byte(s)))
 	sigCache.Store(string(s), ans)
