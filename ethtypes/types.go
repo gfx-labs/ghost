@@ -33,3 +33,32 @@ type AccessListItem struct {
 	Address     common.Address `json:"address"`
 	StorageKeys []common.Hash  `json:"storageKeys"`
 }
+
+type Log struct {
+	Address          common.Address `json:"address"`
+	Topics           []common.Hash  `json:"topics"`
+	Data             hexutil.Bytes  `json:"data"`
+	BlockNumber      hexutil.Uint64 `json:"blockNumber"`
+	TransactionHash  common.Hash    `json:"transactionHash"`
+	TransactionIndex hexutil.Uint64 `json:"transactionIndex"`
+	BlockHash        common.Hash    `json:"blockHash"`
+	LogIndex         hexutil.Uint64 `json:"logIndex"`
+	Removed          bool           `json:"removed"`
+}
+
+type TransactionReceipt struct {
+	BlockHash         common.Hash    `json:"blockHash"`
+	BlockNumber       hexutil.Uint64 `json:"blockNumber"`
+	ContractAddress   common.Address `json:"contractAddress"`
+	CumulativeGasUsed uint256.Int    `json:"cumulativeGasUsed"`
+	EffectiveGasPrice uint256.Int    `json:"effectiveGasPrice"`
+	From              common.Address `json:"from"`
+	GasUsed           uint256.Int    `json:"gasUsed"`
+	Logs              []Log          `json:"logs"`
+	LogsBloom         hexutil.Bytes  `json:"logsBloom"`
+	Status            hexutil.Uint64 `json:"status"`
+	To                common.Address `json:"to"`
+	TransactionHash   common.Hash    `json:"transactionHash"`
+	TransactionIndex  hexutil.Uint64 `json:"transactionIndex"`
+	Type              hexutil.Uint64 `json:"type"`
+}
