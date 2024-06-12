@@ -104,3 +104,19 @@ type BlockTxObjs struct {
 	Block
 	Transactions []Transaction `json:"transactions"`
 }
+
+type AbiParam struct {
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Components string `json:"components"`
+	Indexed    bool   `json:"indexed"` // only for event args
+}
+
+type AbiEventFn struct { //event or function or error
+	Type            string     `json:"type"`
+	Name            string     `json:"name"`
+	Inputs          []AbiParam `json:"inputs"`
+	Outputs         []AbiParam `json:"outputs"`         // doesnt exist for events
+	Anonymous       bool       `json:"anonymous"`       // only for events
+	StateMutability string     `json:"stateMutability"` // only for functions
+}
