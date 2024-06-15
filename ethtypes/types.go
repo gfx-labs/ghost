@@ -105,11 +105,17 @@ type BlockTxObjs struct {
 	Transactions []Transaction `json:"transactions"`
 }
 
+type AbiComponent struct {
+	Name       string         `json:"name"`
+	Type       string         `json:"type"`
+	Components []AbiComponent `json:"components"`
+}
+
 type AbiParam struct {
-	Name       string `json:"name"`
-	Type       string `json:"type"`
-	Components string `json:"components"`
-	Indexed    bool   `json:"indexed"` // only for event args
+	Name       string         `json:"name"`
+	Type       string         `json:"type"`
+	Components []AbiComponent `json:"components"`
+	Indexed    bool           `json:"indexed"` // only for event args
 }
 
 type AbiEventFn struct { //event or function or error
