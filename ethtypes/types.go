@@ -36,7 +36,7 @@ type AccessListItem struct {
 
 type Log struct {
 	Address          common.Address  `json:"address"`
-	Topics           []common.Hash   `json:"topics"`
+	Topics           []hexutil.Bytes `json:"topics"`
 	Data             hexutil.Bytes   `json:"data"`
 	BlockNumber      hexutil.Uint64  `json:"blockNumber"`
 	TransactionHash  *common.Hash    `json:"transactionHash"`
@@ -104,6 +104,22 @@ type BlockTxObjs struct {
 	Block
 	Transactions []Transaction `json:"transactions"`
 }
+
+type Trace struct {
+	Type         string         `json:"type"`
+	From         common.Address `json:"from"`
+	To           common.Address `json:"to"`
+	Value        uint256.Int    `json:"value"`
+	Gas          uint256.Int    `json:"gas"`
+	GasUsed      uint256.Int    `json:"gasUsed"`
+	Input        hexutil.Bytes  `json:"input"`
+	Output       *hexutil.Bytes `json:"output,omitempty"`
+	Calls        []Trace        `json:"calls,omitempty"`
+	Error        *string        `json:"error,omitempty"`
+	RevertReason *string        `json:"revertReason,omitempty"`
+}
+
+//---------------------------- ABI TYPES
 
 type AbiComponent struct {
 	Name       string         `json:"name"`
