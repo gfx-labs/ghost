@@ -6,6 +6,7 @@ import (
 
 	"gfx.cafe/open/ghost/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,6 +28,18 @@ func TestBasicTypeReflect(t *testing.T) {
 
 	assert.EqualValues(t, int64(69), One.Int64())
 	assert.True(t, Two)
+}
+func TestSimpleStruct(t *testing.T) {
+	dec := abi.HexDecoder(`0000000000000000000000000000000000000000000000000000000000000045`)
+
+	var res struct {
+		Data uint256.Int `abi:"uint256"`
+	}
+	err := DecodeInto(dec, &res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.EqualValues(t, uint64(69), res.Data.Uint64())
 }
 
 func TestAddressReflect(t *testing.T) {

@@ -94,12 +94,14 @@ func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) {
 	case 0:
 		return fmt.Errorf("Nothing to decode")
 	case 1:
-		return decode(d, args[0], val)
+		if val.Kind() != reflect.Struct {
+			return decode(d, args[0], val)
+		}
+		fallthrough
 	default:
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())
 		}
-		//fmt.Println(args)
 		//return d.decode(TUPLE(args...), val)
 		fidx := 0
 		for i := 0; i < len(args); i++ {
