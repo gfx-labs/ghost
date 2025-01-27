@@ -40,6 +40,22 @@ func TestSimpleStruct(t *testing.T) {
 	assert.EqualValues(t, uint64(69), res.Data.Uint64())
 }
 
+func TestUintPtrDecodeInto(t *testing.T) {
+	var s struct {
+		Data *uint256.Int `abi:"uint256"`
+	}
+	dec := abi.HexDecoder(
+		`0000000000000000000000000000000000000000000000000000000000000006`)
+	res := uint256.NewInt(0)
+	s.Data = res
+
+	err := DecodeInto(dec, &s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.EqualValues(t, "6", res.String())
+}
+
 func TestUintDecodeInto(t *testing.T) {
 	dec := abi.HexDecoder(
 		`0000000000000000000000000000000000000000000000000000000000000006`)
@@ -62,6 +78,7 @@ func TestBytesDecodeInto(t *testing.T) {
 	assert.EqualValues(t, [32]byte{6}, res)
 	dec.Seek(0, io.SeekStart)
 }
+
 func TestHashDecodeInto(t *testing.T) {
 	dec := abi.HexDecoder(
 		`0600000000000000000000000000000000000000000000000000000000000000`)

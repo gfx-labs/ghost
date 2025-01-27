@@ -14,6 +14,10 @@ import (
 type IntSet interface {
 	Set(*big.Int) *big.Int
 }
+
+type UInt256SetFromBig interface {
+	SetFromBig(*big.Int) bool
+}
 type SetStringErr interface {
 	SetString(string, int) error
 }
@@ -33,10 +37,15 @@ func reflectBigNumeric(t abi.TypeName, ui *big.Int, target reflect.Value) error 
 		case IntSet:
 			ts.Set(ui)
 			return nil
+		case UInt256SetFromBig:
+			ts.SetFromBig(ui)
+			return nil
 		case SetStringErr:
 			ts.SetString(ui.String(), 0)
+			return nil
 		case SetStringOk:
 			ts.SetString(ui.String(), 0)
+			return nil
 		default:
 		}
 		t2 := reflect.New(target.Type().Elem())
