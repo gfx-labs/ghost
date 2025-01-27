@@ -1,6 +1,7 @@
 package abir
 
 import (
+	"io"
 	"math/big"
 	"testing"
 
@@ -48,6 +49,29 @@ func TestUintDecodeInto(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.EqualValues(t, "6", res.String())
+}
+
+func TestBytesDecodeInto(t *testing.T) {
+	dec := abi.HexDecoder(
+		`0600000000000000000000000000000000000000000000000000000000000000`)
+	var res [32]byte
+	err := DecodeInto(dec, &res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.EqualValues(t, [32]byte{6}, res)
+	dec.Seek(0, io.SeekStart)
+}
+func TestHashDecodeInto(t *testing.T) {
+	dec := abi.HexDecoder(
+		`0600000000000000000000000000000000000000000000000000000000000000`)
+	var res common.Hash
+	err := DecodeInto(dec, &res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.EqualValues(t, [32]byte{6}, res)
+	dec.Seek(0, io.SeekStart)
 }
 
 func TestAddressReflect(t *testing.T) {

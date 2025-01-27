@@ -43,6 +43,10 @@ func CreateTypeName(t reflect.Type) abi.TypeName {
 	switch t {
 	case typeUint256, typeUint256Ptr, typeBigInt, typeBigIntPtr:
 		return abi.UINT256
+	case typeCommonHash, typeCommonHashPtr:
+		return abi.BYTES32
+	case typeCommonAddress, typeCommonAddressPtr:
+		return abi.ADDRESS
 	default:
 	}
 	switch t.Kind() {
@@ -51,6 +55,10 @@ func CreateTypeName(t reflect.Type) abi.TypeName {
 	case reflect.Slice:
 		return abi.SLICE(CreateTypeName(t.Elem()))
 	case reflect.Array:
+		// special bytes type
+		if t.Elem().Kind() == reflect.Uint8 && t.Len() <= 32 {
+			return abi.TypeName(string(abi.BYTES) + strconv.Itoa(t.Len()))
+		}
 		return abi.ARRAY(CreateTypeName(t.Elem()), t.Len())
 	case reflect.Struct:
 		args := make([]abi.TypeName, 0, t.NumField())
