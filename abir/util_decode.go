@@ -54,6 +54,18 @@ func reflectBigNumeric(t abi.TypeName, ui *big.Int, target reflect.Value) error 
 	case reflect.Struct:
 		if target.Type().AssignableTo(typeBigInt) {
 			target.Set(reflect.ValueOf(*ui))
+		} else {
+			var fidx int
+			for i := 0; i < target.NumField(); i++ {
+			skiptag:
+				tag, _ := parseTag(target.Type().Field(fidx).Tag.Get("abi"))
+				if tag == "-" {
+					fidx = fidx + 1
+					goto skiptag
+				}
+				val := target.Field(fidx)
+				return reflectBigNumeric(t, ui, val)
+			}
 		}
 	case reflect.Slice:
 		switch target.Type().Elem().Kind() {
@@ -95,7 +107,6 @@ func reflectBigNumeric(t abi.TypeName, ui *big.Int, target reflect.Value) error 
 		default:
 			return fmt.Errorf("could not array %v into %v", t, target.Type())
 		}
-
 	default:
 		return fmt.Errorf("could not decode %v into %v", target.Type(), target.Kind())
 	}

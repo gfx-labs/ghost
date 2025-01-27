@@ -39,6 +39,12 @@ func DecodeInto(d *abi.Decoder, v any) (err error) {
 
 func CreateTypeName(t reflect.Type) abi.TypeName {
 	//fmt.Printf("type: %v kind: %v\n", t, t.Kind())
+	// special overrides for some types that are "known"
+	switch t {
+	case typeUint256, typeUint256Ptr, typeBigInt, typeBigIntPtr:
+		return abi.UINT256
+	default:
+	}
 	switch t.Kind() {
 	case reflect.Pointer:
 		return CreateTypeName(t.Elem())
@@ -94,10 +100,9 @@ func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) {
 	case 0:
 		return fmt.Errorf("Nothing to decode")
 	case 1:
-		if val.Kind() != reflect.Struct {
-			return decode(d, args[0], val)
-		}
-		fallthrough
+		// an assumption is made here that if the length of args is 1, then we can directly
+		// decode into v
+		return decode(d, args[0], val)
 	default:
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())

@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasicTypeReflect(t *testing.T) {
@@ -18,13 +19,9 @@ func TestBasicTypeReflect(t *testing.T) {
 	var Two bool
 
 	err := Decode(dec, One, abi.INT192)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	err = Decode(dec, &Two, abi.BOOL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.EqualValues(t, int64(69), One.Int64())
 	assert.True(t, Two)
@@ -40,6 +37,17 @@ func TestSimpleStruct(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.EqualValues(t, uint64(69), res.Data.Uint64())
+}
+
+func TestUintDecodeInto(t *testing.T) {
+	dec := abi.HexDecoder(
+		`0000000000000000000000000000000000000000000000000000000000000006`)
+	var res uint256.Int
+	err := DecodeInto(dec, &res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.EqualValues(t, "6", res.String())
 }
 
 func TestAddressReflect(t *testing.T) {
