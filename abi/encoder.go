@@ -21,10 +21,21 @@ type Builder struct {
 	write    bool // whether to write length
 }
 
-func NewBuilder(fn func() Memory) *Builder {
-	return &Builder{
-		NewMem: fn,
+type AbiBuilderOpt func(*Builder) *Builder
+
+func WithBuilderMemory(fn func() Memory) AbiBuilderOpt {
+	return func(d *Builder) *Builder {
+		d.NewMem = fn
+		return d
 	}
+}
+
+func NewBuilder(opts ...AbiBuilderOpt) *Builder {
+	b := &Builder{}
+	for _, v := range opts {
+		b = v(b)
+	}
+	return b
 }
 
 // get the memory object, uses default memory impl by default
