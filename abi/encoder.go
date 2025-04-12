@@ -33,7 +33,9 @@ func WithBuilderMemory(fn func() Memory) AbiBuilderOpt {
 func NewBuilder(opts ...AbiBuilderOpt) *Builder {
 	b := &Builder{}
 	for _, v := range opts {
-		b = v(b)
+		if v != nil {
+			b = v(b)
+		}
 	}
 	return b
 }
