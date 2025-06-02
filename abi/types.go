@@ -38,6 +38,137 @@ func (t TypeName) IsDynamic() bool {
 	return t.IsSlice() || t == "bytes" || t == "string"
 }
 
+// IsValid checks if the TypeName represents a valid Ethereum ABI type
+func (t TypeName) IsValid() bool {
+	// Empty type is invalid
+	if t == "" {
+		return false
+	}
+
+	// Check if it's a tuple
+	if t.IsTuple() {
+		// Check for proper tuple formatting
+		s := string(t)
+		if len(s) < 2 || s[0] != '(' || s[len(s)-1] != ')' {
+			return false
+		}
+
+		// Empty tuple "()" is valid
+		if s == "()" {
+			return true
+		}
+
+		// Validate each tuple argument
+		args := t.TupleArgs()
+		if len(args) == 0 {
+			return false
+		}
+		for _, arg := range args {
+			if !arg.IsValid() {
+				return false
+			}
+		}
+		return true
+	}
+
+	// Check if it's a dynamic array (ends with [])
+	if t.IsSlice() {
+		s := string(t)
+		baseType := TypeName(s[:len(s)-2])
+		return baseType.IsValid()
+	}
+
+	// Check if it's a fixed array (ends with [n])
+	if t.IsFixedSlice() {
+		baseType, size := t.UnSlice()
+		// Size must be > 0 for valid fixed arrays
+		if size <= 0 {
+			return false
+		}
+		return baseType.IsValid()
+	}
+
+	// Check base types
+	return isValidBaseType(t)
+}
+
+// isValidBaseType checks if the type is a valid Ethereum ABI base type
+func isValidBaseType(t TypeName) bool {
+	s := string(t)
+
+	// Basic types
+	switch t {
+	case BOOL, ADDRESS, STRING, BYTES:
+		return true
+	}
+
+	// uint types: uint8, uint16, ..., uint256
+	if strings.HasPrefix(s, "uint") {
+		sizeStr := s[4:]
+		if sizeStr == "" {
+			return false // "uint" alone is not valid
+		}
+		size, err := strconv.Atoi(sizeStr)
+		if err != nil {
+			return false
+		}
+		// Must be multiple of 8 and between 8 and 256
+		return size >= 8 && size <= 256 && size%8 == 0
+	}
+
+	// int types: int8, int16, ..., int256
+	if strings.HasPrefix(s, "int") {
+		sizeStr := s[3:]
+		if sizeStr == "" {
+			return false // "int" alone is not valid
+		}
+		size, err := strconv.Atoi(sizeStr)
+		if err != nil {
+			return false
+		}
+		// Must be multiple of 8 and between 8 and 256
+		return size >= 8 && size <= 256 && size%8 == 0
+	}
+
+	// bytes types: bytes1, bytes2, ..., bytes32
+	if strings.HasPrefix(s, "bytes") && len(s) > 5 {
+		sizeStr := s[5:]
+		size, err := strconv.Atoi(sizeStr)
+		if err != nil {
+			return false
+		}
+		// Must be between 1 and 32
+		return size >= 1 && size <= 32
+	}
+
+	// fixed and ufixed types: fixed<M>x<N>, ufixed<M>x<N>
+	if strings.HasPrefix(s, "fixed") || strings.HasPrefix(s, "ufixed") {
+		prefix := "fixed"
+		if strings.HasPrefix(s, "ufixed") {
+			prefix = "ufixed"
+		}
+		rest := s[len(prefix):]
+
+		// Must have format MxN
+		parts := strings.Split(rest, "x")
+		if len(parts) != 2 {
+			return false
+		}
+
+		m, err1 := strconv.Atoi(parts[0])
+		n, err2 := strconv.Atoi(parts[1])
+		if err1 != nil || err2 != nil {
+			return false
+		}
+
+		// M must be multiple of 8, between 8 and 256
+		// N must be between 0 and 80
+		return m >= 8 && m <= 256 && m%8 == 0 && n >= 0 && n <= 80
+	}
+
+	return false
+}
+
 func (t TypeName) IsTuple() bool {
 	return strings.HasPrefix(string(t), "(") && strings.HasSuffix(string(t), ")")
 }

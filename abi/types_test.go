@@ -204,3 +204,139 @@ func TestTypeNameTupleArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestTypeNameIsValid(t *testing.T) {
+	tests := []struct {
+		input    TypeName
+		expected bool
+	}{
+		// Valid base types
+		{"bool", true},
+		{"address", true},
+		{"string", true},
+		{"bytes", true},
+
+		// Valid uint types
+		{"uint8", true},
+		{"uint16", true},
+		{"uint24", true},
+		{"uint32", true},
+		{"uint256", true},
+
+		// Valid int types
+		{"int8", true},
+		{"int16", true},
+		{"int24", true},
+		{"int32", true},
+		{"int256", true},
+
+		// Valid bytes types
+		{"bytes1", true},
+		{"bytes2", true},
+		{"bytes17", true},
+		{"bytes16", true},
+		{"bytes32", true},
+
+		// Valid fixed types
+		{"fixed128x18", true},
+		{"ufixed128x18", true},
+		{"fixed256x80", true},
+		{"ufixed8x0", true},
+
+		// Valid arrays
+		{"uint256[]", true},
+		{"address[]", true},
+		{"bool[]", true},
+		{"string[]", true},
+		{"uint256[5]", true},
+		{"address[10]", true},
+		{"bytes32[100]", true},
+
+		// Valid nested arrays
+		{"uint256[][]", true},
+		{"uint256[5][10]", true},
+		{"address[][5]", true},
+		{"bool[10][]", true},
+
+		// Valid tuples
+		{"()", true},
+		{"(uint256)", true},
+		{"(uint256,address)", true},
+		{"(uint256,string,bool)", true},
+		{"((uint256,address),string)", true},
+		{"(uint256,(address,bool))", true},
+
+		// Valid complex types
+		{"(uint256,address)[]", true},
+		{"(uint256,string)[5]", true},
+		{"(uint256[],address)", true},
+		{"((uint256[],bool),address[])", true},
+
+		// Invalid: empty
+		{"", false},
+
+		// Invalid: incomplete types
+		{"uint", false},
+		{"int", false},
+
+		// Invalid: wrong sizes
+		{"uint7", false},   // not multiple of 8
+		{"uint257", false}, // > 256
+		{"uint0", false},   // < 8
+		{"int7", false},    // not multiple of 8
+		{"int257", false},  // > 256
+		{"int0", false},    // < 8
+		{"bytes0", false},  // < 1
+		{"bytes33", false}, // > 32
+		{"bytes64", false}, // > 32
+
+		// Invalid: fixed types
+		{"fixed7x18", false},    // M not multiple of 8
+		{"fixed256x81", false},  // N > 80
+		{"fixed256x-1", false},  // N < 0
+		{"ufixed300x18", false}, // M > 256
+		{"fixed128x", false},    // missing N
+		{"fixedx18", false},     // missing M
+		{"fixed", false},        // missing MxN
+
+		// Invalid: malformed types
+		{"uint256[", false},
+		{"uint256]", false},
+		{"uint256[5", false},
+		{"uint256]5[", false},
+		{"[5]uint256", false},
+		{"[]", false},
+		{"[10]", false},
+
+		// Invalid: bad array sizes
+		{"uint256[0]", false},
+		{"uint256[-1]", false},
+		{"uint256[abc]", false},
+
+		// Invalid: malformed tuples
+		{"(", false},
+		{")", false},
+		{"(uint256,", false},
+		{"uint256)", false},
+		{"(uint256,,address)", false},
+
+		// Invalid: nested invalid types
+		{"uint7[]", false},
+		{"(uint256,uint7)", false},
+		{"(uint256,invalid)", false},
+		{"invalid[]", false},
+		{"invalid[5]", false},
+
+		// Invalid: random strings
+		{"hello", false},
+		{"123", false},
+		{"!@#$", false},
+	}
+
+	for _, test := range tests {
+		result := test.input.IsValid()
+		if result != test.expected {
+			t.Errorf("TypeName(%q).IsValid() = %v, want %v", test.input, result, test.expected)
+		}
+	}
+}
