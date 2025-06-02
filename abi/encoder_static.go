@@ -48,7 +48,7 @@ func (d *Builder) Int(i int) *Builder {
 }
 
 func (d *Builder) Uint(i uint) *Builder {
-	return d.BigUint(uint256.NewInt(uint64(i)))
+	return d.Uint256(uint256.NewInt(uint64(i)))
 }
 
 func (d *Builder) Uint8(i uint8) *Builder {

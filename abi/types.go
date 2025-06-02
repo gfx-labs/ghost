@@ -13,8 +13,7 @@ func (t TypeName) IsSlice() bool {
 }
 
 func (t TypeName) IsFixedSlice() bool {
-	match := regexFixedString(string(t))
-	return match
+	return isFixedArray(string(t))
 }
 
 func (t TypeName) IsDynamic() bool {
@@ -26,10 +25,13 @@ func (t TypeName) IsDynamic() bool {
 		}
 		return dym
 	}
+	if t.IsSlice() {
+		return true
+	}
 	// T[k] check
-	match := regexDynamic(string(t))
+	match := isFixedArray(string(t))
 	if match {
-		i := strings.Index(string(t), "[")
+		i := strings.LastIndex(string(t), "[")
 		t1 := TypeName(t[:i])
 		return t1.IsDynamic()
 	}
