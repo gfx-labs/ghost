@@ -5,17 +5,27 @@ import (
 	"strings"
 )
 
-// represents a valid evm abi type.
+// TypeName represents a Solidity ABI type as a string, such as "uint256",
+// "address", "string", "bytes32", "(uint256,address)", or "uint256[]".
+//
+// Use the package constants (UINT256, ADDRESS, BOOL, etc.) for base types,
+// and the constructors [TUPLE], [SLICE], [ARRAY], [FIXED], and [UFIXED]
+// for composite types.
 type TypeName string
 
+// IsSlice reports whether t is a dynamic array type (ends with "[]").
 func (t TypeName) IsSlice() bool {
 	return strings.HasSuffix(string(t), "[]")
 }
 
+// IsFixedSlice reports whether t is a fixed-size array type (ends with "[N]").
 func (t TypeName) IsFixedSlice() bool {
 	return isFixedArray(string(t))
 }
 
+// IsDynamic reports whether t requires dynamic encoding (offset + data).
+// Dynamic types include string, bytes, T[], and any tuple or T[k] containing
+// a dynamic element.
 func (t TypeName) IsDynamic() bool {
 	// tuple check
 	dym := false
@@ -174,14 +184,18 @@ func isValidBaseType(t TypeName) bool {
 	return false
 }
 
+// IsTuple reports whether t is a tuple type (starts with "(" and ends with ")").
 func (t TypeName) IsTuple() bool {
 	return strings.HasPrefix(string(t), "(") && strings.HasSuffix(string(t), ")")
 }
 
+// IsSimple reports whether t is neither a dynamic slice nor a tuple.
+// Note that fixed arrays like "uint256[5]" are considered simple.
 func (t TypeName) IsSimple() bool {
 	return (!t.IsSlice()) && (!t.IsTuple())
 }
 
+// IsNumber reports whether t is a numeric type (int, uint, fixed, or ufixed).
 func (t TypeName) IsNumber() bool {
 	st := string(t)
 	switch {
@@ -191,6 +205,7 @@ func (t TypeName) IsNumber() bool {
 	return false
 }
 
+// IsUnsigned reports whether t starts with 'u' (uint or ufixed).
 func (t TypeName) IsUnsigned() bool {
 	if len(t) == 0 {
 		return false
@@ -198,6 +213,9 @@ func (t TypeName) IsUnsigned() bool {
 	return t[0] == 'u'
 }
 
+// TupleArgs parses a tuple type and returns its element types.
+// For "(uint256,address)" it returns ["uint256", "address"].
+// Handles nested tuples correctly.
 func (t TypeName) TupleArgs() []TypeName {
 	out := make([]TypeName, 0, 16)
 	str := strings.NewReader(string(t))
@@ -232,14 +250,21 @@ func (t TypeName) TupleArgs() []TypeName {
 	}
 }
 
+// ARRAY constructs a fixed-size array type: ARRAY(UINT256, 5) => "uint256[5]".
 func ARRAY(t TypeName, n int) TypeName {
 	return TypeName(string(t) + "[" + strconv.Itoa(n) + "]")
 }
 
+// SLICE constructs a dynamic array type: SLICE(UINT256) => "uint256[]".
 func SLICE(t TypeName) TypeName {
 	return TypeName(t + "[]")
 }
 
+// UnSlice strips the outermost array suffix and returns the element type
+// and length. For dynamic arrays the length is 0:
+//
+//	SLICE(UINT256).UnSlice()      => ("uint256", 0)
+//	ARRAY(UINT256, 5).UnSlice()   => ("uint256", 5)
 func (t TypeName) UnSlice() (TypeName, int) {
 	st := string(t)
 	i := strings.LastIndexByte(st, '[')
@@ -248,14 +273,20 @@ func (t TypeName) UnSlice() (TypeName, int) {
 	return TypeName(st[:i]), l
 }
 
+// FIXED constructs a signed fixed-point type: FIXED(128, 18) => "fixed128x18".
 func FIXED(M, N int) TypeName {
 	return TypeName("fixed" + strconv.Itoa(M) + "x" + strconv.Itoa(N))
 }
 
+// UFIXED constructs an unsigned fixed-point type: UFIXED(128, 18) => "ufixed128x18".
 func UFIXED(M, N int) TypeName {
 	return TypeName("ufixed" + strconv.Itoa(M) + "x" + strconv.Itoa(N))
 }
 
+// TUPLE constructs a tuple type from its elements:
+//
+//	TUPLE(UINT256, ADDRESS) => "(uint256,address)"
+//	TUPLE()                 => "()"
 func TUPLE(elems ...TypeName) TypeName {
 	switch len(elems) {
 	case 0:
