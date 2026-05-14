@@ -2,7 +2,7 @@ package abipath
 
 import (
 	"gfx.cafe/open/ghost/abi"
-	"gfx.cafe/util/go/lexer"
+	"gfx.cafe/open/ghost/abipath/lexer"
 )
 
 func Point(p string, xs []byte) ([]byte, error) {

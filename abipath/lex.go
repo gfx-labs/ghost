@@ -1,7 +1,7 @@
 package abipath
 
 import (
-	"gfx.cafe/util/go/lexer"
+	"gfx.cafe/open/ghost/abipath/lexer"
 )
 
 func LexerState(l *lexer.Lex) lexer.StateFn {
