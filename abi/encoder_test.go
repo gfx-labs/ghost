@@ -1,9 +1,11 @@
 package abi
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,6 +90,157 @@ func TestEncodeDynamicSimple(t *testing.T) {
 0000000000000000000000000000000000000000000000000000000000000002
 000000000000000000000000000000000000000000000000000000000000007b
 000000000000000000000000000000000000000000000000000000000000007c`, PrettyHex(ans))
+}
+
+func TestNewBuilderWithOpts(t *testing.T) {
+	b := NewBuilder()
+	b.Uint(42)
+	ans := b.Finish()
+	assert.Equal(t, `
+000000000000000000000000000000000000000000000000000000000000002a`, PrettyHex(ans))
+}
+
+func TestWithBuilderMemoryOpt(t *testing.T) {
+	called := false
+	opt := WithBuilderMemory(func() Memory {
+		called = true
+		return &sliceMemory{}
+	})
+	b := NewBuilder(opt)
+	// accessing Mem should use the custom factory
+	_ = b
+	assert.NotNil(t, b.NewMem)
+	// Just verify the opt was applied
+	assert.False(t, called) // not called until Mem() is invoked
+}
+
+func TestEncodeBigIntPositive(t *testing.T) {
+	b := &Builder{}
+	b.BigInt(big.NewInt(255))
+	ans := b.Finish()
+	assert.Equal(t, `
+00000000000000000000000000000000000000000000000000000000000000ff`, PrettyHex(ans))
+}
+
+func TestEncodeBigIntNegative(t *testing.T) {
+	b := &Builder{}
+	b.BigInt(big.NewInt(-1))
+	ans := b.Finish()
+	assert.Equal(t, `
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff`, PrettyHex(ans))
+
+	b2 := &Builder{}
+	b2.BigInt(big.NewInt(-256))
+	ans2 := b2.Finish()
+	assert.Equal(t, `
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00`, PrettyHex(ans2))
+}
+
+func TestEncodeBigIntRoundtrip(t *testing.T) {
+	values := []*big.Int{
+		big.NewInt(0),
+		big.NewInt(1),
+		big.NewInt(-1),
+		big.NewInt(12345),
+		big.NewInt(-12345),
+		big.NewInt(256),
+		big.NewInt(-256),
+	}
+	for _, v := range values {
+		b := &Builder{}
+		b.BigInt(v)
+		encoded := b.Finish()
+		dec := NewDecoder(encoded)
+		decoded, err := dec.BigInt()
+		assert.NoError(t, err, "value: %v", v)
+		assert.Equal(t, 0, v.Cmp(decoded), "expected %v, got %v", v, decoded)
+	}
+}
+
+func TestEncodeBoolFalse(t *testing.T) {
+	b := &Builder{}
+	b.Bool(false)
+	ans := b.Finish()
+	assert.Equal(t, `
+0000000000000000000000000000000000000000000000000000000000000000`, PrettyHex(ans))
+}
+
+func TestEncodeIntNegative(t *testing.T) {
+	b := &Builder{}
+	b.Int(-1)
+	ans := b.Finish()
+	assert.Equal(t, `
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff`, PrettyHex(ans))
+}
+
+func TestFixedBytesPanic(t *testing.T) {
+	b := &Builder{}
+	assert.Panics(t, func() {
+		b.FixedBytes(2, []byte{1, 2, 3}) // l < len(s) should panic
+	})
+}
+
+func TestBigUintDeprecated(t *testing.T) {
+	b := &Builder{}
+	v := uint256.NewInt(42)
+	b.BigUint(v)
+	ans := b.Finish()
+	assert.Equal(t, `
+000000000000000000000000000000000000000000000000000000000000002a`, PrettyHex(ans))
+}
+
+func TestExitPanic(t *testing.T) {
+	b := &Builder{}
+	assert.Panics(t, func() {
+		b.Exit() // no parent, should panic
+	})
+}
+
+func TestEncodeUint256(t *testing.T) {
+	b := &Builder{}
+	v := uint256.NewInt(0xdeadbeef)
+	b.Uint256(v)
+	ans := b.Finish()
+	assert.Equal(t, `
+00000000000000000000000000000000000000000000000000000000deadbeef`, PrettyHex(ans))
+}
+
+func TestEncodeAddress(t *testing.T) {
+	b := &Builder{}
+	addr := common.HexToAddress("0x1234567890abcdef1234567890abcdef12345678")
+	b.Address(addr)
+	ans := b.Finish()
+	dec := NewDecoder(ans)
+	decoded, err := dec.Address()
+	assert.NoError(t, err)
+	assert.Equal(t, addr, decoded)
+}
+
+func TestEncodeBytes(t *testing.T) {
+	b := &Builder{}
+	b.Bytes([]byte{0xde, 0xad, 0xbe, 0xef})
+	ans := b.Finish()
+	dec := NewDecoder(ans)
+	bts, err := dec.Bytes()
+	assert.NoError(t, err)
+	assert.Equal(t, []byte{0xde, 0xad, 0xbe, 0xef}, bts)
+}
+
+func TestEncodeEmptyDynamicArray(t *testing.T) {
+	b := &Builder{}
+	b.EnterDynamicArray().Exit()
+	b.Uint(99)
+	ans := b.Finish()
+
+	dec := NewDecoder(ans)
+	arr, l, err := dec.DynamicLength()
+	assert.NoError(t, err)
+	assert.Equal(t, 0, l)
+	_ = arr
+
+	val, err := dec.Uint()
+	assert.NoError(t, err)
+	assert.Equal(t, uint(99), val)
 }
 
 func TestEncodeDynamicComplex(t *testing.T) {

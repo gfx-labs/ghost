@@ -23,17 +23,22 @@ type Decoder struct {
 	cur int
 }
 
-func HexDecoder(s string) *Decoder {
+func hexDecoder(s string) *Decoder {
+	return NewDecoder(hexBytes(s))
+}
+
+func hexBytes(s string) []byte {
 	s = strings.TrimPrefix(s, "0x")
+	s = strings.TrimPrefix(s, "0X")
 	s = strings.ReplaceAll(s, "\n", "")
 	s = strings.ReplaceAll(s, "\r", "")
 	s = strings.ReplaceAll(s, " ", "")
-	s = strings.ReplaceAll(s, `	`, "")
+	s = strings.ReplaceAll(s, "\t", "")
 	ans, err := hex.DecodeString(s)
 	if err != nil {
 		panic(err)
 	}
-	return NewDecoder(ans)
+	return ans
 }
 
 func NewDecoder(xs []byte) *Decoder {

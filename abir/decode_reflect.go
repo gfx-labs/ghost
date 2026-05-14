@@ -253,21 +253,10 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 		if err != nil {
 			return err
 		}
+		if t == abi.BYTES && target.Kind() == reflect.Slice && target.Type().Elem().Kind() == reflect.Uint8 {
+			return reflectDynamicBytes(t, []byte(str), target)
+		}
 		return reflectString(t, str, target)
-	//case t == BYTES:
-	// sub, err := dec.Dynamic()
-	// if err != nil {
-	// 	return err
-	// }
-	// l, err := sub.Int()
-	// if err != nil {
-	// 	return err
-	// }
-	// bts, err := sub.N(l)
-	// if err != nil {
-	// 	return err
-	// }
-	// return reflectDynamicBytes(t, bts, target)
 	case strings.HasPrefix(st, "bytes") || t == abi.FUNCTION:
 		var amt int
 		var err error
