@@ -12,6 +12,39 @@ func TestEncodePadding(t *testing.T) {
 	assert.Equal(t, `
 0000000000000000000000000000000000000000000000000000000000010203`, PrettyHex(s))
 }
+
+func TestPadRight(t *testing.T) {
+	// Test case where len(data) % 32 == 0 and len(data) != 0 (early return)
+	data32 := make([]byte, 32)
+	for i := range data32 {
+		data32[i] = byte(i + 1)
+	}
+	result := padright(data32)
+	assert.Equal(t, data32, result, "padright should return same slice when length is multiple of 32")
+
+	// Test padding case
+	s := padright([]byte{1, 2, 3})
+	assert.Equal(t, `
+0102030000000000000000000000000000000000000000000000000000000000`, PrettyHex(s))
+}
+
+func TestSliceMemoryInsert(t *testing.T) {
+	// Test Insert with loc == 0
+	m := &sliceMemory{}
+	m.Insert(0, []byte{1, 2, 3})
+	assert.Equal(t, []byte{1, 2, 3}, m.Data())
+
+	// Test Insert with loc == -1 (uses m.cur)
+	m2 := &sliceMemory{}
+	m2.Insert(-1, []byte{4, 5, 6})
+	assert.Equal(t, []byte{4, 5, 6}, m2.Data())
+
+	// Test Insert at loc == 0 with existing data
+	m3 := &sliceMemory{}
+	m3.Insert(-1, []byte{7, 8, 9})
+	m3.Insert(0, []byte{1, 2, 3})
+	assert.Equal(t, []byte{1, 2, 3, 7, 8, 9}, m3.Data())
+}
 func TestEncodeWithFuncSig(t *testing.T) {
 	b := &Builder{}
 	b.Int(1001)

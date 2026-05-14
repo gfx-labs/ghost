@@ -2,8 +2,10 @@ package abi
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -227,4 +229,171 @@ func TestComplex(t *testing.T) {
 	assert.EqualValues(t, 7, r.a)
 	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r.b)
 	assert.EqualValues(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.c)
+}
+
+func TestRemaining(t *testing.T) {
+	dec := HexDecoder(`
+0000000000000000000000000000000000000000000000000000000000000001
+0000000000000000000000000000000000000000000000000000000000000002`)
+	// Initially all bytes remain
+	assert.Equal(t, 64, len(dec.Remaining()))
+
+	// Read one word, 32 bytes remain
+	_, err := dec.Uint256()
+	assert.NoError(t, err)
+	assert.Equal(t, 32, len(dec.Remaining()))
+
+	// Read another word, 0 bytes remain
+	_, err = dec.Uint256()
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(dec.Remaining()))
+}
+
+func TestPeek(t *testing.T) {
+	dec := HexDecoder(`
+0000000000000000000000000000000000000000000000000000000000000042`)
+
+	// Peek should not advance cursor
+	buf := make([]byte, 4)
+	n, err := dec.Peek(buf)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, n)
+	assert.Equal(t, []byte{0, 0, 0, 0}, buf)
+
+	// Cursor unchanged, can still read full word
+	val, err := dec.Uint256()
+	assert.NoError(t, err)
+	assert.Equal(t, uint256.NewInt(0x42), val)
+
+	// Peek past end should error
+	buf2 := make([]byte, 4)
+	_, err = dec.Peek(buf2)
+	assert.ErrorIs(t, err, ErrUnexpectedEOF)
+}
+
+func TestPeekWord(t *testing.T) {
+	dec := HexDecoder(`
+0000000000000000000000000000000000000000000000000000000000000099`)
+
+	// PeekWord should not advance cursor
+	word, err := dec.PeekWord()
+	assert.NoError(t, err)
+	assert.Equal(t, byte(0x99), word[31])
+
+	// Can still read the same word
+	val, err := dec.Uint256()
+	assert.NoError(t, err)
+	assert.Equal(t, uint256.NewInt(0x99), val)
+
+	// PeekWord on empty decoder should error
+	_, err = dec.PeekWord()
+	assert.ErrorIs(t, err, ErrUnexpectedEOF)
+}
+
+func TestPeekUint256(t *testing.T) {
+	dec := HexDecoder(`
+00000000000000000000000000000000000000000000000000000000000000ff`)
+
+	// PeekUint256 should not advance cursor
+	val, err := dec.PeekUint256()
+	assert.NoError(t, err)
+	assert.Equal(t, uint256.NewInt(0xff), val)
+
+	// Can still read the same value
+	val2, err := dec.Uint256()
+	assert.NoError(t, err)
+	assert.Equal(t, uint256.NewInt(0xff), val2)
+
+	// PeekUint256 on empty decoder should error
+	_, err = dec.PeekUint256()
+	assert.ErrorIs(t, err, ErrUnexpectedEOF)
+}
+
+func TestBigIntNegative(t *testing.T) {
+	// -1 in two's complement (all 1s)
+	dec := HexDecoder(`
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff`)
+	val, err := dec.BigInt()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(-1), val.Int64())
+
+	// -2 in two's complement
+	dec2 := HexDecoder(`
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe`)
+	val2, err := dec2.BigInt()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(-2), val2.Int64())
+
+	// Large negative: -256
+	dec3 := HexDecoder(`
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00`)
+	val3, err := dec3.BigInt()
+	assert.NoError(t, err)
+	assert.Equal(t, int64(-256), val3.Int64())
+}
+
+func TestDynamicLength(t *testing.T) {
+	// Encode: offset (0x40 = 64), some data, then at offset: length (3), items
+	dec := HexDecoder(`
+0000000000000000000000000000000000000000000000000000000000000040
+000000000000000000000000000000000000000000000000000000000000002a
+0000000000000000000000000000000000000000000000000000000000000003
+0000000000000000000000000000000000000000000000000000000000000001
+0000000000000000000000000000000000000000000000000000000000000002
+0000000000000000000000000000000000000000000000000000000000000003`)
+
+	arrDec, length, err := dec.DynamicLength()
+	assert.NoError(t, err)
+	assert.Equal(t, 3, length)
+
+	// Read the array elements
+	for i := 1; i <= 3; i++ {
+		val, err := arrDec.Int()
+		assert.NoError(t, err)
+		assert.Equal(t, i, val)
+	}
+
+	// Original decoder can continue reading
+	val, err := dec.Int()
+	assert.NoError(t, err)
+	assert.Equal(t, 0x2a, val)
+}
+
+func TestSeek(t *testing.T) {
+	dec := HexDecoder(`
+0000000000000000000000000000000000000000000000000000000000000001
+0000000000000000000000000000000000000000000000000000000000000002
+0000000000000000000000000000000000000000000000000000000000000003`)
+
+	// SeekStart
+	pos, err := dec.Seek(32, io.SeekStart)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(32), pos)
+	val, _ := dec.Int()
+	assert.Equal(t, 2, val)
+
+	// SeekCurrent (now at 64, seek +32)
+	pos, err = dec.Seek(32, io.SeekCurrent)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(96), pos)
+
+	// SeekEnd (seek back 32 from end)
+	pos, err = dec.Seek(32, io.SeekEnd)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(64), pos)
+	val, _ = dec.Int()
+	assert.Equal(t, 3, val)
+
+	// SeekStart back to beginning
+	dec.Seek(0, io.SeekStart)
+	val, _ = dec.Int()
+	assert.Equal(t, 1, val)
+
+	// Invalid seek (negative position)
+	_, err = dec.Seek(-100, io.SeekStart)
+	assert.Error(t, err)
+
+	// Invalid seek (past end)
+	_, err = dec.Seek(1000, io.SeekStart)
+	assert.Error(t, err)
 }

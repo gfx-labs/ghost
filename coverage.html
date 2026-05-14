@@ -1,0 +1,2313 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>abi: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">gfx.cafe/open/ghost/abi/checks.go (100.0%)</option>
+				
+				<option value="file1">gfx.cafe/open/ghost/abi/decoder.go (46.9%)</option>
+				
+				<option value="file2">gfx.cafe/open/ghost/abi/encoder.go (73.9%)</option>
+				
+				<option value="file3">gfx.cafe/open/ghost/abi/encoder_dynamic.go (96.8%)</option>
+				
+				<option value="file4">gfx.cafe/open/ghost/abi/encoder_static.go (50.0%)</option>
+				
+				<option value="file5">gfx.cafe/open/ghost/abi/memory.go (100.0%)</option>
+				
+				<option value="file6">gfx.cafe/open/ghost/abi/memory_slice.go (100.0%)</option>
+				
+				<option value="file7">gfx.cafe/open/ghost/abi/pretty.go (100.0%)</option>
+				
+				<option value="file8">gfx.cafe/open/ghost/abi/signature.go (54.3%)</option>
+				
+				<option value="file9">gfx.cafe/open/ghost/abi/types.go (88.1%)</option>
+				
+				<option value="file10">gfx.cafe/open/ghost/abi/util.go (100.0%)</option>
+				
+				<option value="file11">gfx.cafe/open/ghost/abipath/lex.go (100.0%)</option>
+				
+				<option value="file12">gfx.cafe/open/ghost/abipath/point.go (90.5%)</option>
+				
+				<option value="file13">gfx.cafe/open/ghost/abir/decode_reflect.go (72.5%)</option>
+				
+				<option value="file14">gfx.cafe/open/ghost/abir/encoder_reflect.go (67.2%)</option>
+				
+				<option value="file15">gfx.cafe/open/ghost/abir/tags.go (11.8%)</option>
+				
+				<option value="file16">gfx.cafe/open/ghost/abir/util_decode.go (38.2%)</option>
+				
+				<option value="file17">gfx.cafe/open/ghost/utility/multicall/multicall.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package abi
+
+// isFixedArray checks if string ends with a fixed array pattern [n] where n is a number
+func isFixedArray(s string) bool <span class="cov8" title="1">{
+        n := len(s)
+        if n &lt; 3 </span><span class="cov8" title="1">{ // minimum is "[0]"
+                return false
+        }</span>
+
+        // Check if it ends with ']'
+        <span class="cov8" title="1">if s[n-1] != ']' </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        // Find the matching '[' going backwards
+        <span class="cov8" title="1">bracketPos := -1
+        for i := n - 2; i &gt;= 0; i-- </span><span class="cov8" title="1">{
+                if s[i] == '[' </span><span class="cov8" title="1">{
+                        bracketPos = i
+                        break</span>
+                }
+                // Must be a digit
+                <span class="cov8" title="1">if s[i] &lt; '0' || s[i] &gt; '9' </span><span class="cov8" title="1">{
+                        return false
+                }</span>
+        }
+
+        // Must have found '[' and have at least one digit between '[' and ']'
+        <span class="cov8" title="1">return bracketPos &gt;= 0 &amp;&amp; bracketPos &lt; n-2</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package abi
+
+import (
+        "encoding/hex"
+        "errors"
+        "io"
+        "math/big"
+        "strings"
+
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/holiman/uint256"
+)
+
+var (
+        // MaxUint256 is the maximum value that can be represented by a uint256.
+        MaxUint256 = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 256), common.Big1)
+        // MaxInt256 is the maximum value that can be represented by a int256.
+        MaxInt256 = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 255), common.Big1)
+)
+
+type Decoder struct {
+        xs  []byte
+        cur int
+}
+
+func HexDecoder(s string) *Decoder <span class="cov8" title="1">{
+        s = strings.TrimPrefix(s, "0x")
+        s = strings.ReplaceAll(s, "\n", "")
+        s = strings.ReplaceAll(s, "\r", "")
+        s = strings.ReplaceAll(s, " ", "")
+        s = strings.ReplaceAll(s, `        `, "")
+        ans, err := hex.DecodeString(s)
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        <span class="cov8" title="1">return NewDecoder(ans)</span>
+}
+
+func NewDecoder(xs []byte) *Decoder <span class="cov8" title="1">{
+        return &amp;Decoder{
+                xs: xs,
+        }
+}</span>
+func (d *Decoder) Remaining() []byte <span class="cov0" title="0">{
+        return d.xs[d.cur:]
+}</span>
+
+func (d *Decoder) Peek(o []byte) (int, error) <span class="cov0" title="0">{
+        if (len(d.xs) - d.cur) &lt; len(o) </span><span class="cov0" title="0">{
+                return 0, ErrUnexpectedEOF
+        }</span>
+        <span class="cov0" title="0">n := copy(o, d.xs[d.cur:d.cur+len(o)])
+        return n, nil</span>
+}
+
+// reads 32 bytes
+func (d *Decoder) PeekWord() (o [32]byte, err error) <span class="cov0" title="0">{
+        _, err = d.Peek(o[:])
+        if err != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">return o, nil</span>
+}
+
+func (d *Decoder) PeekUint256() (*uint256.Int, error) <span class="cov0" title="0">{
+        b, err := d.PeekWord()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">ret := new(uint256.Int).SetBytes(b[:])
+        return ret, nil</span>
+}
+
+func (d *Decoder) Read(o []byte) (int, error) <span class="cov8" title="1">{
+        if (len(d.xs) - d.cur) &lt; len(o) </span><span class="cov0" title="0">{
+                return 0, ErrUnexpectedEOF
+        }</span>
+        <span class="cov8" title="1">n := copy(o, d.xs[d.cur:d.cur+len(o)])
+        d.cur = d.cur + len(o)
+        return n, nil</span>
+}
+
+// reads n bytes
+func (d *Decoder) ReadN(n int) ([]byte, error) <span class="cov8" title="1">{
+        o := make([]byte, n)
+        _, err := d.Read(o[:])
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return o, nil</span>
+}
+
+// reads 32 bytes
+func (d *Decoder) ReadWord() (o [32]byte, err error) <span class="cov8" title="1">{
+        _, err = d.Read(o[:])
+        if err != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov8" title="1">return o, nil</span>
+}
+
+func (d *Decoder) ReadNPadRight32(n int) ([]byte, error) <span class="cov8" title="1">{
+        diff := 32 - (n % 32)
+        if diff == 32 </span><span class="cov0" title="0">{
+                diff = 0
+        }</span>
+        <span class="cov8" title="1">o := make([]byte, n)
+        _, err := d.Read(o[:])
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">_, err = d.ReadN(diff)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return o, nil</span>
+}
+
+func (d *Decoder) Uint256() (*uint256.Int, error) <span class="cov8" title="1">{
+        b, err := d.ReadWord()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">ret := new(uint256.Int).SetBytes(b[:])
+        return ret, nil</span>
+}
+
+func (d *Decoder) Address() (common.Address, error) <span class="cov0" title="0">{
+        word, err := d.ReadWord()
+        if err != nil </span><span class="cov0" title="0">{
+                return common.Address{}, err
+        }</span>
+        <span class="cov0" title="0">ans := common.BytesToAddress(word[:])
+        return ans, nil</span>
+}
+
+func (d *Decoder) BigInt() (*big.Int, error) <span class="cov8" title="1">{
+        rt, err := d.Uint256()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">ret := rt.ToBig()
+        if ret.Bit(255) == 1 </span><span class="cov0" title="0">{
+                ret.Add(MaxUint256, new(big.Int).Neg(ret))
+                ret.Add(ret, common.Big1)
+                ret.Neg(ret)
+        }</span>
+        <span class="cov8" title="1">return ret, nil</span>
+}
+
+func (d *Decoder) Bool() (bool, error) <span class="cov8" title="1">{
+        ans, err := d.Uint256()
+        if err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">if ans.Cmp(uint256.NewInt(0)) == 0 </span><span class="cov0" title="0">{
+                return false, nil
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+
+func (d *Decoder) Int() (int, error) <span class="cov8" title="1">{
+        ans, err := d.BigInt()
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, err
+        }</span>
+        <span class="cov8" title="1">if !ans.IsInt64() </span><span class="cov0" title="0">{
+                return 0, errors.New("abi: int overflow")
+        }</span>
+        <span class="cov8" title="1">return int(ans.Int64()), nil</span>
+}
+
+func (d *Decoder) Uint() (uint, error) <span class="cov8" title="1">{
+        ans, err := d.Uint256()
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, err
+        }</span>
+        <span class="cov8" title="1">if !ans.IsUint64() </span><span class="cov0" title="0">{
+                return 0, errors.New("abi: int overflow")
+        }</span>
+        <span class="cov8" title="1">return uint(ans.Uint64()), nil</span>
+}
+
+func (d *Decoder) Uint8() (uint8, error) <span class="cov0" title="0">{
+        ans, err := d.Int()
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, err
+        }</span>
+        <span class="cov0" title="0">if ans &gt; 255 </span><span class="cov0" title="0">{
+                return 0, errors.New("abi: uint8 overflow")
+        }</span>
+        <span class="cov0" title="0">return uint8(ans), nil</span>
+}
+
+func (d *Decoder) Uint16() (uint16, error) <span class="cov0" title="0">{
+        ans, err := d.Int()
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, err
+        }</span>
+        <span class="cov0" title="0">if ans &gt; 65536 </span><span class="cov0" title="0">{
+                return 0, errors.New("abi: uint16 overflow")
+        }</span>
+        <span class="cov0" title="0">return uint16(ans), nil</span>
+}
+
+func (d *Decoder) Dynamic() (*Decoder, error) <span class="cov8" title="1">{
+        offset, err := d.Uint256()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">actual := int(offset.Uint64())
+        if len(d.xs) &lt; actual </span><span class="cov0" title="0">{
+                return nil, errors.New("abi: dynamic overflow")
+        }</span>
+        <span class="cov8" title="1">return NewDecoder(d.xs[actual:]), nil</span>
+}
+func (d *Decoder) DynamicLength() (*Decoder, int, error) <span class="cov0" title="0">{
+        offset, err := d.Uint256()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+        <span class="cov0" title="0">actual := int(offset.Uint64())
+        if len(d.xs) &lt; actual </span><span class="cov0" title="0">{
+                return nil, 0, errors.New("abi: dynamic overflow")
+        }</span>
+        // hop over to the new one
+        <span class="cov0" title="0">dec1 := NewDecoder(d.xs[actual:])
+        l, err := dec1.Int()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, 0, errors.New("abi: len unexpected EOF")
+        }</span>
+        <span class="cov0" title="0">return NewDecoder(dec1.xs[32:]), l, nil</span>
+}
+
+func (d *Decoder) DString() (string, error) <span class="cov8" title="1">{
+        bts, err := d.Bytes()
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">return string(bts), nil</span>
+}
+
+func (d *Decoder) Bytes() ([]byte, error) <span class="cov8" title="1">{
+        offset, err := d.Uint256()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">actual := int(offset.Uint64())
+        if len(d.xs) &lt; actual </span><span class="cov0" title="0">{
+                return nil, errors.New("abi: dynamic overflow")
+        }</span>
+        <span class="cov8" title="1">dec := NewDecoder(d.xs[actual:])
+        l, err := dec.Uint()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">bts, err := dec.ReadN(int(l))
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return bts, nil</span>
+}
+
+func (d *Decoder) Seek(offset int64, whence int) (int64, error) <span class="cov0" title="0">{
+        startByte := d.cur
+        switch whence </span>{
+        case io.SeekStart:<span class="cov0" title="0">
+                startByte = int(offset)</span>
+        case io.SeekCurrent:<span class="cov0" title="0">
+                startByte = d.cur + int(offset)</span>
+        case io.SeekEnd:<span class="cov0" title="0">
+                startByte = len(d.xs) - int(offset)</span>
+        }
+        <span class="cov0" title="0">if startByte &lt; 0 || startByte &gt; len(d.xs) </span><span class="cov0" title="0">{
+                return int64(startByte), errors.New("invalid seek offset")
+        }</span>
+        <span class="cov0" title="0">d.cur = startByte
+        return int64(startByte), nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package abi
+
+import (
+        "sort"
+
+        "github.com/holiman/uint256"
+)
+
+const lnlen = 32 // line length
+
+// Builder is used to encode ethereum abi
+type Builder struct {
+        NewMem   func() Memory
+        parent   *Builder
+        len      int    // # of elements. 0 value is special case
+        loc      int    // starting pt in the parent builder
+        mm       Memory // the encoding of the segment
+        bm       sliceMemory
+        children []*Builder
+        rlen     int  // running length. to not double count dynamic children
+        write    bool // whether to write length
+}
+
+type AbiBuilderOpt func(*Builder) *Builder
+
+func WithBuilderMemory(fn func() Memory) AbiBuilderOpt <span class="cov0" title="0">{
+        return func(d *Builder) *Builder </span><span class="cov0" title="0">{
+                d.NewMem = fn
+                return d
+        }</span>
+}
+
+func NewBuilder(opts ...AbiBuilderOpt) *Builder <span class="cov0" title="0">{
+        b := &amp;Builder{}
+        for _, v := range opts </span><span class="cov0" title="0">{
+                if v != nil </span><span class="cov0" title="0">{
+                        b = v(b)
+                }</span>
+        }
+        <span class="cov0" title="0">return b</span>
+}
+
+// get the memory object, uses default memory impl by default
+func (d *Builder) Mem() Memory <span class="cov8" title="1">{
+        if d.mm != nil </span><span class="cov0" title="0">{
+                if d.NewMem != nil </span><span class="cov0" title="0">{
+                        d.mm = d.NewMem()
+                }</span>
+                <span class="cov0" title="0">return d.mm</span>
+        }
+        <span class="cov8" title="1">return &amp;d.bm</span>
+}
+
+// generic builder writer methods
+func (d *Builder) PadRight(xs []byte) *Builder <span class="cov8" title="1">{
+        d.Mem().Put(-1, padright(xs))
+        return d
+}</span>
+
+func (d *Builder) Word(xs []byte) *Builder <span class="cov8" title="1">{
+        d.Mem().Put(-1, padleft(xs))
+        return d
+}</span>
+
+// finish closes all children, and returns the result slice
+func (d *Builder) Finish(prefix ...[]byte) []byte <span class="cov8" title="1">{
+        if d.children != nil </span><span class="cov8" title="1">{
+                d.children = reorder(d.children)
+                for _, c := range d.children </span><span class="cov8" title="1">{
+                        c.Finish()
+                }</span>
+        }
+        // if we are a child, there is special logic in our finish
+        <span class="cov8" title="1">if d.parent != nil </span><span class="cov8" title="1">{
+                return d.finishChild()
+        }</span>
+        <span class="cov8" title="1">for _, v := range prefix </span><span class="cov8" title="1">{
+                d.Mem().Insert(0, v)
+        }</span>
+        <span class="cov8" title="1">return d.Mem().Data()</span>
+}
+
+func (d *Builder) finishChild() []byte <span class="cov8" title="1">{
+        if d.len == 0 </span><span class="cov8" title="1">{ // length unknown at start
+                d.len = len(d.Mem().Data())/lnlen + len(d.children) + d.rlen
+        }</span>
+        <span class="cov8" title="1">if d.len &gt;= 0 </span><span class="cov8" title="1">{ // dynamic element, need to write offset
+                xs := uint256.NewInt(uint64(d.parent.Mem().Pos(0))).Bytes32()
+                d.parent.Mem().Put(d.loc, xs[:])
+                if d.write </span><span class="cov8" title="1">{
+                        d.parent.Int(d.len) // how many elements in the dynamic
+                        d.parent.rlen -= 1
+                }</span>
+        }
+        <span class="cov8" title="1">d.parent.Mem().Put(-1, d.Mem().Data())
+        d.parent.rlen = d.parent.rlen - len(d.Mem().Data())/lnlen
+        return d.Mem().Data()</span>
+}
+
+func reorder(children []*Builder) []*Builder <span class="cov8" title="1">{
+        sort.SliceStable(children, func(i, j int) bool </span><span class="cov8" title="1">{
+                if children[i].len &lt; 0 &amp;&amp; children[j].len &lt; 0 </span><span class="cov8" title="1">{
+                        return i &lt; j
+                }</span>
+                <span class="cov8" title="1">if children[i].len &lt; 0 &amp;&amp; children[j].len &gt;= 0 </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+                <span class="cov8" title="1">if children[i].len &gt;= 0 &amp;&amp; children[j].len &lt; 0 </span><span class="cov0" title="0">{
+                        return false
+                }</span>
+                <span class="cov8" title="1">return i &lt; j</span>
+        })
+        <span class="cov8" title="1">return children</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package abi
+
+func (d *Builder) DString(s string) *Builder <span class="cov8" title="1">{
+        return d.Bytes([]byte(s))
+}</span>
+
+func (d *Builder) Bytes(s []byte) *Builder <span class="cov8" title="1">{
+        dy := d.EnterGroup(len(s), true)
+        i := (len(s) / lnlen) * lnlen
+        if i &gt; 0 </span><span class="cov8" title="1">{
+                dy.Word(s[:i])
+        }</span>
+        <span class="cov8" title="1">rem := len(s) - i
+        if rem &gt; 0 </span><span class="cov8" title="1">{
+                dy.PadRight(s[i:])
+        }</span>
+        <span class="cov8" title="1">return dy.Exit()</span>
+}
+
+// fixed size array
+// TODO: write in a type + size compliance check later
+func (d *Builder) EnterArray(t TypeName, l int) *Builder <span class="cov8" title="1">{
+        if t.IsDynamic() </span><span class="cov8" title="1">{
+                return d.EnterGroup(l, false)
+        }</span>
+        <span class="cov8" title="1">return d.EnterGroup(-l, false)</span>
+}
+
+// l = 0 is variable length dynamic
+// l = -1 is tuple (static) * # doesnt matter as long as negative
+// l &gt; 0 is length specified array (dynamic elements)
+// l &lt; 0 is length specified array (static elements)
+func (d *Builder) EnterGroup(l int, w bool) *Builder <span class="cov8" title="1">{
+        c := &amp;Builder{
+                parent: d,
+                loc:    d.Mem().Pos(0),
+                len:    l,
+                NewMem: d.NewMem,
+                write:  w,
+        }
+        d.children = append(d.children, c)
+        if l &gt;= 0 </span><span class="cov8" title="1">{ // is dynamic
+                wd := [32]byte{} // insert offset placeholder
+                d.Mem().Put(-1, wd[:])
+                d.rlen -= 1
+                b := d
+                for b.len &lt; 0 </span><span class="cov8" title="1">{
+                        b.len = -b.len
+                        if b.parent != nil </span><span class="cov8" title="1">{
+                                b.parent.Mem().Insert(b.loc, wd[:])
+                                b.parent.rlen = b.parent.rlen - 1
+                                b = b.parent
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">return c</span>
+}
+
+// length unspecified array
+func (d *Builder) EnterDynamicArray() *Builder <span class="cov8" title="1">{
+        return d.EnterGroup(0, true)
+}</span>
+
+func (d *Builder) EnterTuple() *Builder <span class="cov8" title="1">{
+        return d.EnterGroup(-1, false)
+}</span>
+
+// exit dynamic element
+func (d *Builder) Exit() *Builder <span class="cov8" title="1">{
+        if d.parent == nil </span><span class="cov0" title="0">{
+                panic("tried to exit group when not in one")</span>
+        }
+        <span class="cov8" title="1">return d.parent</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package abi
+
+import (
+        "math/big"
+
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/holiman/uint256"
+)
+
+func (d *Builder) Uint256(a *uint256.Int) *Builder <span class="cov8" title="1">{
+        d.Word(a.Bytes())
+        return d
+}</span>
+
+func (d *Builder) Address(a common.Address) *Builder <span class="cov8" title="1">{
+        d.Word(a[:])
+        return d
+}</span>
+
+func (d *Builder) BigInt(ret *big.Int) *Builder <span class="cov0" title="0">{
+        nr := new(big.Int).Set(ret)
+        if ret.Cmp(new(big.Int)) == -1 </span><span class="cov0" title="0">{
+                nr.Neg(nr)
+                nr.Sub(nr, common.Big1)
+                nr.Sub(nr, MaxUint256)
+                nr.Neg(nr)
+                d.Word(nr.Bytes())
+                return d
+        }</span>
+        <span class="cov0" title="0">d.Word(ret.Bytes())
+        return d</span>
+}
+
+func (d *Builder) Bool(b bool) *Builder <span class="cov8" title="1">{
+        if b == true </span><span class="cov8" title="1">{
+                d.Word([]byte{0x1})
+                return d
+        }</span>
+        <span class="cov0" title="0">d.Word([]byte{0x0})
+        return d</span>
+}
+
+func (d *Builder) Int(i int) *Builder <span class="cov8" title="1">{
+        if i &gt;= 0 </span><span class="cov8" title="1">{
+                return d.Uint(uint(i))
+        }</span>
+        <span class="cov0" title="0">return d.BigInt(big.NewInt(int64(i)))</span>
+}
+
+func (d *Builder) Uint(i uint) *Builder <span class="cov8" title="1">{
+        return d.Uint256(uint256.NewInt(uint64(i)))
+}</span>
+
+func (d *Builder) Uint8(i uint8) *Builder <span class="cov8" title="1">{
+        return d.Uint(uint(i))
+}</span>
+
+func (d *Builder) Uint16(i uint16) *Builder <span class="cov8" title="1">{
+        d.Uint(uint(i))
+        return d
+}</span>
+
+// 0 &lt; i &lt;= 32
+func (d *Builder) FixedBytes(l int, s []byte) *Builder <span class="cov8" title="1">{
+        //fmt.Printf("%v %s %v\n", l, s, len(s))
+        if l &lt; len(s) </span><span class="cov0" title="0">{
+                panic("input length mismatch")</span>
+        }
+        <span class="cov8" title="1">return d.PadRight(s)</span>
+}
+
+// DEPRECATED
+func (d *Builder) BigUint(a *uint256.Int) *Builder <span class="cov0" title="0">{
+        return d.Uint256(a)
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package abi
+
+// Memory is the underlying store for decoder data
+type Memory interface {
+        // returns the full data
+        Data() []byte
+        // increments the cursor by input, returns new cursor
+        Pos(int) int
+        // insert bytes to a location in memory, appending if needed
+        Insert(loc int, data []byte)
+        // replacing bytes at a location in memory, growing the slice if needed
+        Put(loc int, data []byte)
+}
+
+// default sliceMemory implementation
+type sliceMemory struct {
+        encoded []byte // already encoded.
+        cur     int    // current pointer (bytes)
+}
+
+func (m *sliceMemory) Data() []byte <span class="cov8" title="1">{
+        return m.encoded[:m.cur]
+}</span>
+func (m *sliceMemory) Pos(i int) int <span class="cov8" title="1">{
+        m.cur = m.cur + i
+        return m.cur
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package abi
+
+// inserts data at the location
+func (m *sliceMemory) Insert(loc int, data []byte) <span class="cov8" title="1">{
+        if loc == -1 </span><span class="cov8" title="1">{
+                loc = m.cur
+        }</span>
+        <span class="cov8" title="1">var s []byte
+        if loc == 0 </span><span class="cov8" title="1">{
+                s = data
+        }</span> else<span class="cov8" title="1"> {
+                s = append(m.encoded[:loc], data...)
+        }</span>
+        <span class="cov8" title="1">if loc == len(m.encoded) </span><span class="cov8" title="1">{
+                m.encoded = s
+        }</span> else<span class="cov8" title="1"> {
+                m.encoded = append(s, m.encoded[loc:]...)
+        }</span>
+        <span class="cov8" title="1">m.Pos(len(data))</span>
+}
+
+// replaces data at the location
+func (m *sliceMemory) Put(loc int, data []byte) <span class="cov8" title="1">{
+        if loc == -1 </span><span class="cov8" title="1">{
+                loc = m.cur
+        }</span>
+        <span class="cov8" title="1">if loc+len(data) &gt; len(m.encoded) </span><span class="cov8" title="1">{
+                m.grow(loc + len(data) - len(m.encoded))
+        }</span>
+        <span class="cov8" title="1">copy(m.encoded[loc:loc+len(data)], data)</span>
+}
+
+func (m *sliceMemory) grow(amt int) <span class="cov8" title="1">{
+        m.encoded = append(m.encoded, make([]byte, amt)...)
+        m.Pos(amt)
+}</span>
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package abi
+
+import (
+        "encoding/hex"
+        "strings"
+)
+
+func PrettyHex(xs []byte) string <span class="cov8" title="1">{
+        out := new(strings.Builder)
+        cur := len(xs) % 32
+        phex := hex.EncodeToString(xs[:cur])
+        out.WriteString(phex)
+        for </span><span class="cov8" title="1">{
+                if cur+32 &gt; len(xs) </span><span class="cov8" title="1">{
+                        out.WriteString(hex.EncodeToString(xs[cur:]))
+                        return out.String()
+                }</span> else<span class="cov8" title="1"> {
+                        out.WriteRune('\n')
+                        out.WriteString(hex.EncodeToString(xs[cur:(cur + 32)]))
+                        cur = cur + 32
+                }</span>
+
+        }
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package abi
+
+import (
+        "strings"
+        "sync"
+
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/ethereum/go-ethereum/crypto"
+)
+
+var sigCache sync.Map
+
+type Call string
+
+func decodeCall(c string) (Signature, []string) <span class="cov8" title="1">{
+        sigB := new(strings.Builder)
+        if len(c) &lt; 3 </span><span class="cov0" title="0">{
+                return "", nil
+        }</span>
+        <span class="cov8" title="1">methodIdx := strings.IndexByte(c, '(')
+        sigB.WriteString(c[:methodIdx])
+        sigB.WriteRune('(')
+        out := make([]string, 0, 4)
+        cutset := c[methodIdx+1 : len(c)-1]
+        for idx, v := range strings.Split(cutset, ",") </span><span class="cov8" title="1">{
+                if idx &gt; 0 </span><span class="cov8" title="1">{
+                        sigB.WriteRune(',')
+                }</span>
+                <span class="cov8" title="1">v = strings.TrimSpace(v)
+                o := strings.SplitN(v, " ", 2)
+                sigB.WriteString(strings.TrimSpace(o[0]))
+                if len(o) &gt; 1 </span><span class="cov8" title="1">{
+                        out = append(out, strings.TrimSpace(o[1]))
+                }</span> else<span class="cov0" title="0"> {
+                        out = append(out, "")
+                }</span>
+        }
+        <span class="cov8" title="1">sigB.WriteRune(')')
+        return Signature(sigB.String()), out</span>
+}
+func (c Call) Decode() (Signature, []string) <span class="cov8" title="1">{
+        return decodeCall(string(c))
+}</span>
+
+// represents the string that is hashed for things like function signature and event signatures
+type Signature string
+
+func SIG(s string, t ...TypeName) Signature <span class="cov8" title="1">{
+        return Signature(s + string(TUPLE(t...)))
+}</span>
+func (s Signature) Method() string <span class="cov0" title="0">{
+        ans := new(strings.Builder)
+        for _, v := range s </span><span class="cov0" title="0">{
+                if v == '(' </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">ans.WriteRune(v)</span>
+        }
+        <span class="cov0" title="0">return ans.String()</span>
+}
+
+func (s Signature) Args() TypeName <span class="cov0" title="0">{
+        ans := new(strings.Builder)
+        state := 0
+        for _, v := range s </span><span class="cov0" title="0">{
+                if v == '(' </span><span class="cov0" title="0">{
+                        state = 1
+                }</span>
+                <span class="cov0" title="0">if state == 1 </span><span class="cov0" title="0">{
+                        ans.WriteRune(v)
+                }</span>
+        }
+        <span class="cov0" title="0">return TypeName(ans.String())</span>
+}
+
+func (s Signature) Hash() common.Hash <span class="cov8" title="1">{
+        if have, ok := sigCache.Load(string(s)); ok </span><span class="cov0" title="0">{
+                return have.(common.Hash)
+        }</span>
+        <span class="cov8" title="1">ans := common.BytesToHash(crypto.Keccak256([]byte(s)))
+        sigCache.Store(string(s), ans)
+        return ans</span>
+}
+func (s Signature) SelectorB() []byte <span class="cov0" title="0">{
+        ss := s.Selector()
+        return ss[:]
+}</span>
+
+func (s Signature) Selector() [4]byte <span class="cov0" title="0">{
+        h := s.Hash()
+        return [4]byte{h[0], h[1], h[2], h[3]}
+}</span>
+
+func (s Signature) Fn() []byte <span class="cov8" title="1">{
+        h := s.Hash()
+        return []byte{h[0], h[1], h[2], h[3]}
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package abi
+
+import (
+        "strconv"
+        "strings"
+)
+
+// represents a valid evm abi type.
+type TypeName string
+
+func (t TypeName) IsSlice() bool <span class="cov8" title="1">{
+        return strings.HasSuffix(string(t), "[]")
+}</span>
+
+func (t TypeName) IsFixedSlice() bool <span class="cov8" title="1">{
+        return isFixedArray(string(t))
+}</span>
+
+func (t TypeName) IsDynamic() bool <span class="cov8" title="1">{
+        // tuple check
+        dym := false
+        if t.IsTuple() </span><span class="cov8" title="1">{
+                for _, arg := range t.TupleArgs() </span><span class="cov8" title="1">{
+                        dym = dym || arg.IsDynamic()
+                }</span>
+                <span class="cov8" title="1">return dym</span>
+        }
+        <span class="cov8" title="1">if t.IsSlice() </span><span class="cov8" title="1">{
+                return true
+        }</span>
+        // T[k] check
+        <span class="cov8" title="1">match := isFixedArray(string(t))
+        if match </span><span class="cov8" title="1">{
+                i := strings.LastIndex(string(t), "[")
+                t1 := TypeName(t[:i])
+                return t1.IsDynamic()
+        }</span>
+        <span class="cov8" title="1">return t.IsSlice() || t == "bytes" || t == "string"</span>
+}
+
+// IsValid checks if the TypeName represents a valid Ethereum ABI type
+func (t TypeName) IsValid() bool <span class="cov8" title="1">{
+        // Empty type is invalid
+        if t == "" </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        // Check if it's a tuple
+        <span class="cov8" title="1">if t.IsTuple() </span><span class="cov8" title="1">{
+                // Check for proper tuple formatting
+                s := string(t)
+                if len(s) &lt; 2 || s[0] != '(' || s[len(s)-1] != ')' </span><span class="cov0" title="0">{
+                        return false
+                }</span>
+
+                // Empty tuple "()" is valid
+                <span class="cov8" title="1">if s == "()" </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+
+                // Validate each tuple argument
+                <span class="cov8" title="1">args := t.TupleArgs()
+                if len(args) == 0 </span><span class="cov0" title="0">{
+                        return false
+                }</span>
+                <span class="cov8" title="1">for _, arg := range args </span><span class="cov8" title="1">{
+                        if !arg.IsValid() </span><span class="cov8" title="1">{
+                                return false
+                        }</span>
+                }
+                <span class="cov8" title="1">return true</span>
+        }
+
+        // Check if it's a dynamic array (ends with [])
+        <span class="cov8" title="1">if t.IsSlice() </span><span class="cov8" title="1">{
+                s := string(t)
+                baseType := TypeName(s[:len(s)-2])
+                return baseType.IsValid()
+        }</span>
+
+        // Check if it's a fixed array (ends with [n])
+        <span class="cov8" title="1">if t.IsFixedSlice() </span><span class="cov8" title="1">{
+                baseType, size := t.UnSlice()
+                // Size must be &gt; 0 for valid fixed arrays
+                if size &lt;= 0 </span><span class="cov8" title="1">{
+                        return false
+                }</span>
+                <span class="cov8" title="1">return baseType.IsValid()</span>
+        }
+
+        // Check base types
+        <span class="cov8" title="1">return isValidBaseType(t)</span>
+}
+
+// isValidBaseType checks if the type is a valid Ethereum ABI base type
+func isValidBaseType(t TypeName) bool <span class="cov8" title="1">{
+        s := string(t)
+
+        // Basic types
+        switch t </span>{
+        case BOOL, ADDRESS, STRING, BYTES:<span class="cov8" title="1">
+                return true</span>
+        }
+
+        // if it is a tuple or a slice, it's not a base type
+        <span class="cov8" title="1">if !t.IsSimple() </span><span class="cov0" title="0">{
+                return false
+        }</span>
+
+        // uint types: uint8, uint16, ..., uint256
+        <span class="cov8" title="1">if strings.HasPrefix(s, "uint") </span><span class="cov8" title="1">{
+                sizeStr := s[4:]
+                if sizeStr == "" </span><span class="cov8" title="1">{
+                        return false // "uint" alone is not valid
+                }</span>
+                <span class="cov8" title="1">size, err := strconv.Atoi(sizeStr)
+                if err != nil </span><span class="cov8" title="1">{
+                        return false
+                }</span>
+                // Must be multiple of 8 and between 8 and 256
+                <span class="cov8" title="1">return size &gt;= 8 &amp;&amp; size &lt;= 256 &amp;&amp; size%8 == 0</span>
+        }
+
+        // int types: int8, int16, ..., int256
+        <span class="cov8" title="1">if strings.HasPrefix(s, "int") </span><span class="cov8" title="1">{
+                sizeStr := s[3:]
+                if sizeStr == "" </span><span class="cov8" title="1">{
+                        return false // "int" alone is not valid
+                }</span>
+                <span class="cov8" title="1">size, err := strconv.Atoi(sizeStr)
+                if err != nil </span><span class="cov0" title="0">{
+                        return false
+                }</span>
+                // Must be multiple of 8 and between 8 and 256
+                <span class="cov8" title="1">return size &gt;= 8 &amp;&amp; size &lt;= 256 &amp;&amp; size%8 == 0</span>
+        }
+
+        // bytes types: bytes1, bytes2, ..., bytes32
+        <span class="cov8" title="1">if strings.HasPrefix(s, "bytes") &amp;&amp; len(s) &gt; 5 </span><span class="cov8" title="1">{
+                sizeStr := s[5:]
+                size, err := strconv.Atoi(sizeStr)
+                if err != nil </span><span class="cov0" title="0">{
+                        return false
+                }</span>
+                // Must be between 1 and 32
+                <span class="cov8" title="1">return size &gt;= 1 &amp;&amp; size &lt;= 32</span>
+        }
+
+        // fixed and ufixed types: fixed&lt;M&gt;x&lt;N&gt;, ufixed&lt;M&gt;x&lt;N&gt;
+        <span class="cov8" title="1">if strings.HasPrefix(s, "fixed") || strings.HasPrefix(s, "ufixed") </span><span class="cov8" title="1">{
+                prefix := "fixed"
+                if strings.HasPrefix(s, "ufixed") </span><span class="cov8" title="1">{
+                        prefix = "ufixed"
+                }</span>
+                <span class="cov8" title="1">rest := s[len(prefix):]
+
+                // Must have format MxN
+                cut := strings.Index(rest, "x")
+                if cut == -1 </span><span class="cov8" title="1">{
+                        return false
+                }</span>
+
+                <span class="cov8" title="1">m, err1 := strconv.Atoi(rest[:cut])
+                n, err2 := strconv.Atoi(rest[cut+1:])
+                if err1 != nil || err2 != nil </span><span class="cov8" title="1">{
+                        return false
+                }</span>
+
+                // M must be multiple of 8, between 8 and 256
+                // N must be between 0 and 80
+                <span class="cov8" title="1">return m &gt;= 8 &amp;&amp; m &lt;= 256 &amp;&amp; m%8 == 0 &amp;&amp; n &gt;= 0 &amp;&amp; n &lt;= 80</span>
+        }
+
+        <span class="cov8" title="1">return false</span>
+}
+
+func (t TypeName) IsTuple() bool <span class="cov8" title="1">{
+        return strings.HasPrefix(string(t), "(") &amp;&amp; strings.HasSuffix(string(t), ")")
+}</span>
+
+func (t TypeName) IsSimple() bool <span class="cov8" title="1">{
+        return (!t.IsSlice()) &amp;&amp; (!t.IsTuple())
+}</span>
+
+func (t TypeName) IsNumber() bool <span class="cov0" title="0">{
+        st := string(t)
+        switch </span>{
+        case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):<span class="cov0" title="0">
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+func (t TypeName) IsUnsigned() bool <span class="cov0" title="0">{
+        if len(t) == 0 </span><span class="cov0" title="0">{
+                return false
+        }</span>
+        <span class="cov0" title="0">return t[0] == 'u'</span>
+}
+
+func (t TypeName) TupleArgs() []TypeName <span class="cov8" title="1">{
+        out := make([]TypeName, 0, 16)
+        str := strings.NewReader(string(t))
+        var cur strings.Builder
+        str.ReadRune()
+        state := 0
+        for </span><span class="cov8" title="1">{
+                r, _, err := str.ReadRune()
+                if err != nil </span><span class="cov0" title="0">{
+                        return out
+                }</span>
+                <span class="cov8" title="1">if state == 0 </span><span class="cov8" title="1">{
+                        if r == ')' </span><span class="cov8" title="1">{
+                                out = append(out, TypeName(strings.TrimSpace(cur.String())))
+                                return out
+                        }</span>
+                }
+                <span class="cov8" title="1">if r == '(' </span><span class="cov8" title="1">{
+                        state = state + 1
+                }</span>
+                <span class="cov8" title="1">if state &gt; 0 </span><span class="cov8" title="1">{
+                        if r == ')' </span><span class="cov8" title="1">{
+                                state = state - 1
+                        }</span>
+                }
+                <span class="cov8" title="1">if state == 0 &amp;&amp; r == ',' </span><span class="cov8" title="1">{
+                        out = append(out, TypeName(strings.TrimSpace(cur.String())))
+                        cur.Reset()
+                }</span> else<span class="cov8" title="1"> {
+                        cur.WriteRune(r)
+                }</span>
+        }
+}
+
+func ARRAY(t TypeName, n int) TypeName <span class="cov8" title="1">{
+        return TypeName(string(t) + "[" + strconv.Itoa(n) + "]")
+}</span>
+
+func SLICE(t TypeName) TypeName <span class="cov8" title="1">{
+        return TypeName(t + "[]")
+}</span>
+
+func (t TypeName) UnSlice() (TypeName, int) <span class="cov8" title="1">{
+        st := string(t)
+        i := strings.LastIndexByte(st, '[')
+        l, _ := strconv.Atoi(st[i+1 : len(st)-1])
+
+        return TypeName(st[:i]), l
+}</span>
+
+func FIXED(M, N int) TypeName <span class="cov0" title="0">{
+        return TypeName("fixed" + strconv.Itoa(M) + "x" + strconv.Itoa(N))
+}</span>
+
+func UFIXED(M, N int) TypeName <span class="cov0" title="0">{
+        return TypeName("ufixed" + strconv.Itoa(M) + "x" + strconv.Itoa(N))
+}</span>
+
+func TUPLE(elems ...TypeName) TypeName <span class="cov8" title="1">{
+        switch len(elems) </span>{
+        case 0:<span class="cov0" title="0">
+                return "()"</span>
+        case 1:<span class="cov8" title="1">
+                return "(" + elems[0] + ")"</span>
+        }
+        <span class="cov8" title="1">n := (len(elems) - 1)
+        for i := 0; i &lt; len(elems); i++ </span><span class="cov8" title="1">{
+                n += len(elems[i])
+        }</span>
+
+        <span class="cov8" title="1">var b strings.Builder
+        b.WriteRune('(')
+        b.Grow(n)
+        b.WriteString(string(elems[0]))
+        for _, s := range elems[1:] </span><span class="cov8" title="1">{
+                b.WriteRune(',')
+                b.WriteString(string(s))
+        }</span>
+        <span class="cov8" title="1">b.WriteRune(')')
+        return TypeName(b.String())</span>
+}
+
+const (
+        NIL TypeName = ""
+
+        BOOL     TypeName = "bool"
+        FUNCTION TypeName = "function"
+        ADDRESS  TypeName = "address"
+        STRING   TypeName = "string"
+)
+
+const (
+        UINT    TypeName = "uint256"
+        UINT8   TypeName = "uint8"
+        UINT16  TypeName = "uint16"
+        UINT24  TypeName = "uint24"
+        UINT32  TypeName = "uint32"
+        UINT40  TypeName = "uint40"
+        UINT48  TypeName = "uint48"
+        UINT56  TypeName = "uint56"
+        UINT64  TypeName = "uint64"
+        UINT72  TypeName = "uint72"
+        UINT80  TypeName = "uint80"
+        UINT88  TypeName = "uint88"
+        UINT96  TypeName = "uint96"
+        UINT104 TypeName = "uint104"
+        UINT112 TypeName = "uint112"
+        UINT120 TypeName = "uint120"
+        UINT128 TypeName = "uint128"
+        UINT136 TypeName = "uint136"
+        UINT144 TypeName = "uint144"
+        UINT152 TypeName = "uint152"
+        UINT160 TypeName = "uint160"
+        UINT168 TypeName = "uint168"
+        UINT176 TypeName = "uint176"
+        UINT184 TypeName = "uint184"
+        UINT192 TypeName = "uint192"
+        UINT200 TypeName = "uint200"
+        UINT208 TypeName = "uint208"
+        UINT216 TypeName = "uint216"
+        UINT224 TypeName = "uint224"
+        UINT232 TypeName = "uint232"
+        UINT240 TypeName = "uint240"
+        UINT248 TypeName = "uint248"
+        UINT256 TypeName = "uint256"
+        INT     TypeName = "int256"
+        INT8    TypeName = "int8"
+        INT16   TypeName = "int16"
+        INT24   TypeName = "int24"
+        INT32   TypeName = "int32"
+        INT40   TypeName = "int40"
+        INT48   TypeName = "int48"
+        INT56   TypeName = "int56"
+        INT64   TypeName = "int64"
+        INT72   TypeName = "int72"
+        INT80   TypeName = "int80"
+        INT88   TypeName = "int88"
+        INT96   TypeName = "int96"
+        INT104  TypeName = "int104"
+        INT112  TypeName = "int112"
+        INT120  TypeName = "int120"
+        INT128  TypeName = "int128"
+        INT136  TypeName = "int136"
+        INT144  TypeName = "int144"
+        INT152  TypeName = "int152"
+        INT160  TypeName = "int160"
+        INT168  TypeName = "int168"
+        INT176  TypeName = "int176"
+        INT184  TypeName = "int184"
+        INT192  TypeName = "int192"
+        INT200  TypeName = "int200"
+        INT208  TypeName = "int208"
+        INT216  TypeName = "int216"
+        INT224  TypeName = "int224"
+        INT232  TypeName = "int232"
+        INT240  TypeName = "int240"
+        INT248  TypeName = "int248"
+        INT256  TypeName = "int256"
+)
+
+const (
+        BYTES   TypeName = "bytes"
+        BYTES1  TypeName = "bytes1"
+        BYTES2  TypeName = "bytes2"
+        BYTES3  TypeName = "bytes3"
+        BYTES4  TypeName = "bytes4"
+        BYTES5  TypeName = "bytes5"
+        BYTES6  TypeName = "bytes6"
+        BYTES7  TypeName = "bytes7"
+        BYTES8  TypeName = "bytes8"
+        BYTES9  TypeName = "bytes9"
+        BYTES10 TypeName = "bytes10"
+        BYTES11 TypeName = "bytes11"
+        BYTES12 TypeName = "bytes12"
+        BYTES13 TypeName = "bytes13"
+        BYTES14 TypeName = "bytes14"
+        BYTES15 TypeName = "bytes15"
+        BYTES16 TypeName = "bytes16"
+        BYTES17 TypeName = "bytes17"
+        BYTES18 TypeName = "bytes18"
+        BYTES19 TypeName = "bytes19"
+        BYTES20 TypeName = "bytes20"
+        BYTES21 TypeName = "bytes21"
+        BYTES22 TypeName = "bytes22"
+        BYTES23 TypeName = "bytes23"
+        BYTES24 TypeName = "bytes24"
+        BYTES25 TypeName = "bytes25"
+        BYTES26 TypeName = "bytes26"
+        BYTES27 TypeName = "bytes27"
+        BYTES28 TypeName = "bytes28"
+        BYTES29 TypeName = "bytes29"
+        BYTES30 TypeName = "bytes30"
+        BYTES31 TypeName = "bytes31"
+        BYTES32 TypeName = "bytes32"
+)
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package abi
+
+func padleft(data []byte) []byte <span class="cov8" title="1">{
+        l := len(data) % 32
+        if l == 0 &amp;&amp; len(data) != 0 </span><span class="cov8" title="1">{
+                return data
+        }</span>
+        <span class="cov8" title="1">alloc := [32]byte{}
+        padding := alloc[l:]
+
+        return append(padding, data...)</span>
+}
+func padright(data []byte) []byte <span class="cov8" title="1">{
+        l := len(data) % 32
+        if l == 0 &amp;&amp; len(data) != 0 </span><span class="cov8" title="1">{
+                return data
+        }</span>
+        <span class="cov8" title="1">alloc := [32]byte{}
+        padding := alloc[l:]
+        return append(data, padding...)</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package abipath
+
+import (
+        "gfx.cafe/util/go/lexer"
+)
+
+func LexerState(l *lexer.Lex) lexer.StateFn <span class="cov8" title="1">{
+        for </span><span class="cov8" title="1">{
+                switch l.Cur() </span>{
+                case "":<span class="cov8" title="1"></span>
+                case ".", "/":<span class="cov8" title="1">
+                        l.Emit(lexer.SymbolToken)</span>
+                case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":<span class="cov8" title="1">
+                        l.TakeWhile("0123456789")
+                        l.Emit(lexer.IntegerToken)</span>
+                default:<span class="cov8" title="1">
+                        l.TakeUntil("./")
+                        l.Emit(lexer.StringToken)</span>
+                }
+                <span class="cov8" title="1">if l.Next() == lexer.EOFRune </span><span class="cov8" title="1">{
+                        break</span>
+                }
+        }
+        <span class="cov8" title="1">l.Emit(lexer.EOFToken)
+        return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package abipath
+
+import (
+        "gfx.cafe/open/ghost/abi"
+        "gfx.cafe/util/go/lexer"
+)
+
+func Point(p string, xs []byte) ([]byte, error) <span class="cov8" title="1">{
+        dec := abi.NewDecoder(xs)
+        l := lexer.New(p, LexerState)
+        err := l.ConsumeWithUntilErr(func(tok *lexer.Token) (err error) </span><span class="cov8" title="1">{
+                switch tok.Type </span>{
+                case lexer.EOFToken:<span class="cov8" title="1">
+                        return nil</span>
+                case lexer.EmptyToken:<span class="cov0" title="0"></span>
+                case lexer.SymbolToken:<span class="cov8" title="1">
+                        switch tok.Value </span>{
+                        case ".":<span class="cov8" title="1">
+                                dec, err = dec.Dynamic()
+                                if err != nil </span><span class="cov8" title="1">{
+                                        return err
+                                }</span>
+                        case "/":<span class="cov8" title="1">
+                                dec, _, err = dec.DynamicLength()
+                                if err != nil </span><span class="cov8" title="1">{
+                                        return err
+                                }</span>
+                        }
+                case lexer.IntegerToken:<span class="cov8" title="1">
+                        _, err := dec.ReadN(tok.Int() * 32)
+                        if err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                case lexer.StringToken:<span class="cov0" title="0">
+                        // nothing for now...
+                        // in the future we can try to parse an abi or something?
+                        return nil</span>
+                default:<span class="cov0" title="0">
+                        return nil</span>
+                }
+                <span class="cov8" title="1">return nil</span>
+        })
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return dec.Remaining(), nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package abir
+
+import (
+        "fmt"
+        "math/big"
+        "reflect"
+        "strconv"
+        "strings"
+
+        "gfx.cafe/open/ghost/abi"
+)
+
+func DecodeBytes(xs []byte, v any, hint ...abi.TypeName) (err error) <span class="cov0" title="0">{
+        return Decode(abi.NewDecoder(xs), v, hint...)
+}</span>
+
+func DecodeInto(d *abi.Decoder, v any) (err error) <span class="cov8" title="1">{
+        defer func() </span><span class="cov8" title="1">{
+                if err2 := recover(); err2 != nil </span><span class="cov0" title="0">{
+                        err = fmt.Errorf("panic while decoding: %v", err2)
+                }</span>
+        }()
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">val := reflect.ValueOf(v)
+        if val.Kind() != reflect.Ptr </span><span class="cov0" title="0">{
+                return fmt.Errorf("abi: expected ptr type to decode into, but got '%v'", val.Kind())
+        }</span>
+
+        <span class="cov8" title="1">val = val.Elem()
+        tn := CreateTypeName(val.Type())
+        switch val.Kind() </span>{
+        case reflect.Struct, reflect.Pointer:<span class="cov8" title="1">
+                return Decode(d, v, tn.TupleArgs()...)</span>
+        }
+        <span class="cov8" title="1">return Decode(d, v, tn)</span>
+}
+
+func CreateTypeName(t reflect.Type) abi.TypeName <span class="cov8" title="1">{
+        //fmt.Printf("type: %v kind: %v\n", t, t.Kind())
+        // special overrides for some types that are "known"
+        switch t </span>{
+        case typeUint256, typeUint256Ptr, typeBigInt, typeBigIntPtr:<span class="cov8" title="1">
+                return abi.UINT256</span>
+        case typeCommonHash, typeCommonHashPtr:<span class="cov8" title="1">
+                return abi.BYTES32</span>
+        case typeCommonAddress, typeCommonAddressPtr:<span class="cov0" title="0">
+                return abi.ADDRESS</span>
+        default:<span class="cov8" title="1"></span>
+        }
+        <span class="cov8" title="1">switch t.Kind() </span>{
+        case reflect.Pointer:<span class="cov0" title="0">
+                return CreateTypeName(t.Elem())</span>
+        case reflect.Slice:<span class="cov8" title="1">
+                return abi.SLICE(CreateTypeName(t.Elem()))</span>
+        case reflect.Array:<span class="cov8" title="1">
+                // special bytes type
+                if t.Elem().Kind() == reflect.Uint8 &amp;&amp; t.Len() &lt;= 32 </span><span class="cov8" title="1">{
+                        return abi.TypeName(string(abi.BYTES) + strconv.Itoa(t.Len()))
+                }</span>
+                <span class="cov8" title="1">return abi.ARRAY(CreateTypeName(t.Elem()), t.Len())</span>
+        case reflect.Struct:<span class="cov8" title="1">
+                args := make([]abi.TypeName, 0, t.NumField())
+                for i := 0; i &lt; t.NumField(); i++ </span><span class="cov8" title="1">{
+                        tag, _ := parseTag(t.Field(i).Tag.Get("abi"))
+                        if tag == "-" </span><span class="cov0" title="0">{
+                                continue</span>
+                        } else<span class="cov8" title="1"> if tag != "" </span><span class="cov8" title="1">{
+                                args = append(args, abi.TypeName(tag))
+                        }</span> else<span class="cov8" title="1"> {
+                                args = append(args, CreateTypeName(t.Field(i).Type))
+                        }</span>
+                }
+                <span class="cov8" title="1">return abi.TUPLE(args...)</span>
+        case reflect.Func:<span class="cov0" title="0">
+                return abi.FUNCTION</span>
+        case reflect.Bool:<span class="cov0" title="0">
+                return abi.BOOL</span>
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov0" title="0">
+                s := strings.ToLower(t.Kind().String())
+                return abi.TypeName(s)</span>
+        case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:<span class="cov8" title="1">
+                s := strings.ToLower(t.Kind().String())
+                return abi.TypeName(s)</span>
+        case reflect.String:<span class="cov0" title="0">
+                return abi.STRING</span>
+        default:<span class="cov0" title="0">
+                return abi.NIL</span>
+        }
+}
+
+func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) <span class="cov8" title="1">{
+        defer func() </span><span class="cov8" title="1">{
+                if err2 := recover(); err2 != nil </span><span class="cov0" title="0">{
+                        err = fmt.Errorf("panic while decoding: %v", err2)
+                }</span>
+        }()
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">val := reflect.ValueOf(v)
+        val = reflect.Indirect(val)
+        if !val.CanAddr() || !val.CanSet() </span><span class="cov0" title="0">{
+                return fmt.Errorf("%v cannot be set or addressed", val.Kind())
+        }</span>
+        <span class="cov8" title="1">switch len(args) </span>{
+        case 0:<span class="cov0" title="0">
+                return fmt.Errorf("Nothing to decode")</span>
+        case 1:<span class="cov8" title="1">
+                // an assumption is made here that if the length of args is 1, then we can directly
+                // decode into v
+                return decode(d, args[0], val)</span>
+        default:<span class="cov8" title="1">
+                if val.Kind() != reflect.Struct </span><span class="cov0" title="0">{
+                        return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())
+                }</span>
+                //return d.decode(TUPLE(args...), val)
+                <span class="cov8" title="1">fidx := 0
+                for i := 0; i &lt; len(args); i++ </span><span class="cov8" title="1">{
+                        //fmt.Printf("%v -&gt; %v\n", args[i], val.Field(i))
+                </span>skiptag:
+                        <span class="cov8" title="1">tag, _ := parseTag(val.Type().Field(fidx).Tag.Get("abi"))
+                        if tag == "-" </span><span class="cov0" title="0">{
+                                fidx = fidx + 1
+                                goto skiptag</span>
+                        }
+                        <span class="cov8" title="1">err = decode(d, args[i], val.Field(fidx))
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">fidx++</span>
+                }
+                <span class="cov8" title="1">return nil</span>
+        }
+}
+
+// v is type struct
+func DecodeTuple(d *abi.Decoder, t abi.TypeName, v reflect.Value) (err error) <span class="cov8" title="1">{
+        targs := t.TupleArgs()
+        //fmt.Println(targs)
+        for i := 0; i &lt; v.NumField(); i++ </span><span class="cov8" title="1">{
+                //fmt.Printf("%v: %s\n", i, targs[i])
+                //fmt.Printf("before value %v kind %v type %v\n", val.Field(i), val.Field(i).Kind(), val.Field(i).Type())
+                err = decode(d, targs[i], v.Field(i))
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// t = type of array
+// l = length of array
+// v has to be a slice or array or will panic
+func DecodeArray(d *abi.Decoder, t abi.TypeName, l int, v reflect.Value) (err error) <span class="cov8" title="1">{
+        vlen := v.Len()
+        if l &gt; vlen </span><span class="cov8" title="1">{
+                s := reflect.MakeSlice(v.Type(), l-vlen, l-vlen)
+                v.Set(reflect.AppendSlice(v, s))
+        }</span>
+        <span class="cov8" title="1">for i := 0; i &lt; l; i++ </span><span class="cov8" title="1">{
+                err = decode(d, t, v.Index(i))
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// TODO:
+// implement map, which should populate m[0], m[1]... etc
+// decode takes in a reflect.Value that points to the actual thing.
+func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error <span class="cov8" title="1">{
+        st := string(t)
+        switch </span>{
+        case t.IsTuple():<span class="cov8" title="1">
+                if target.Kind() != reflect.Struct </span><span class="cov0" title="0">{
+                        return fmt.Errorf("abi: expected struct type to decode tuple into, but got '%v'", target.Kind())
+                }</span>
+                <span class="cov8" title="1">if t.IsDynamic() </span><span class="cov8" title="1">{
+                        // read dynamic offset
+                        cur, err2 := dec.Dynamic()
+                        if err2 != nil </span><span class="cov0" title="0">{
+                                return err2
+                        }</span>
+                        <span class="cov8" title="1">return DecodeTuple(cur, t, target)</span>
+                }
+                <span class="cov8" title="1">return DecodeTuple(dec, t, target)</span>
+        case t.IsSlice():<span class="cov8" title="1">
+                if target.Kind() != reflect.Slice </span><span class="cov0" title="0">{
+                        return fmt.Errorf("cannot decode %s into %v", t, target.Type())
+                }</span>
+                // read dynamic offset
+                <span class="cov8" title="1">cur, l, err2 := dec.DynamicLength()
+                if err2 != nil </span><span class="cov0" title="0">{
+                        return err2
+                }</span>
+                <span class="cov8" title="1">st, _ := t.UnSlice()
+                return DecodeArray(cur, st, l, target)</span>
+        case t.IsFixedSlice():<span class="cov8" title="1">
+                if target.Kind() != reflect.Array </span><span class="cov0" title="0">{
+                        return fmt.Errorf("cannot decode %s into %v", t, target.Kind())
+                }</span>
+                // check type, if dynamic or not
+                <span class="cov8" title="1">tn, l := t.UnSlice()
+                if l != target.Len() </span><span class="cov0" title="0">{
+                        return fmt.Errorf("solidity array length mismatch query: %v target: %v", l, target.Len())
+                }</span>
+                <span class="cov8" title="1">if tn.IsDynamic() </span><span class="cov8" title="1">{
+                        cur, err2 := dec.Dynamic()
+                        if err2 != nil </span><span class="cov0" title="0">{
+                                return err2
+                        }</span>
+                        <span class="cov8" title="1">return DecodeArray(cur, tn, l, target)</span>
+                }
+                <span class="cov0" title="0">return DecodeArray(dec, tn, l, target)</span>
+        case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):<span class="cov8" title="1">
+                var ui *big.Int
+                var err error
+                if st[0] == 'u' </span><span class="cov8" title="1">{
+                        uib, err := dec.Uint256()
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">ui = uib.ToBig()</span>
+                } else<span class="cov8" title="1"> {
+                        ui, err = dec.BigInt()
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                }
+                <span class="cov8" title="1">err = reflectBigNumeric(t, ui, target)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">return nil</span>
+        case t == abi.ADDRESS:<span class="cov8" title="1">
+                addr, err := dec.Address()
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">return reflectAddress(t, addr, target)</span>
+        case t == abi.BOOL:<span class="cov8" title="1">
+                bl, err := dec.Bool()
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">return reflectBool(t, bl, target)</span>
+        case t == abi.STRING, t == abi.BYTES:<span class="cov8" title="1">
+                str, err := dec.DString()
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">return reflectString(t, str, target)</span>
+        //case t == BYTES:
+        // sub, err := dec.Dynamic()
+        // if err != nil {
+        //         return err
+        // }
+        // l, err := sub.Int()
+        // if err != nil {
+        //         return err
+        // }
+        // bts, err := sub.N(l)
+        // if err != nil {
+        //         return err
+        // }
+        // return reflectDynamicBytes(t, bts, target)
+        case strings.HasPrefix(st, "bytes") || t == abi.FUNCTION:<span class="cov8" title="1">
+                var amt int
+                var err error
+                if t == abi.FUNCTION </span><span class="cov0" title="0">{
+                        amt = 24
+                }</span> else<span class="cov8" title="1"> {
+                        bts := strings.TrimPrefix(st, "bytes")
+                        amt, err = strconv.Atoi(bts)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                }
+                <span class="cov8" title="1">bts, err := dec.ReadNPadRight32(amt)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">return reflectFixedBytes(t, bts, target)</span>
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("encountered unknown type: %s", st)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package abir
+
+import (
+        "fmt"
+        "math/big"
+        "reflect"
+        "strconv"
+        "strings"
+
+        "gfx.cafe/open/ghost/abi"
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/holiman/uint256"
+)
+
+func Encode(b *abi.Builder, v any, args ...abi.TypeName) (err error) <span class="cov8" title="1">{
+        defer func() </span><span class="cov8" title="1">{
+                if err2 := recover(); err2 != nil </span><span class="cov0" title="0">{
+                        err = fmt.Errorf("panic while encoding: %v", err2)
+                }</span>
+        }()
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">val := reflect.ValueOf(v)
+        val = reflect.Indirect(val)
+        switch len(args) </span>{
+        case 0:<span class="cov0" title="0">
+                return fmt.Errorf("Nothing to encode")</span>
+        case 1:<span class="cov0" title="0">
+                return encode(b, args[0], val)</span>
+        default:<span class="cov8" title="1">
+                if val.Kind() != reflect.Struct </span><span class="cov0" title="0">{
+                        return fmt.Errorf("expected struct type to encode, but got '%v'", val.Kind())
+                }</span>
+                //fmt.Println(args)
+                <span class="cov8" title="1">for i := 0; i &lt; len(args); i++ </span><span class="cov8" title="1">{
+                        //fmt.Printf("%s : %v\n", args[i], val.Field(i))
+                        err = encode(b, args[i], val.Field(i))
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                }
+                <span class="cov8" title="1">return nil</span>
+        }
+}
+
+func EncodeArray(b *abi.Builder, t abi.TypeName, l int, v reflect.Value) error <span class="cov8" title="1">{
+        if l != v.Len() </span><span class="cov0" title="0">{
+                return fmt.Errorf("length mismatch")
+        }</span>
+        <span class="cov8" title="1">for i := 0; i &lt; l; i++ </span><span class="cov8" title="1">{
+                err := encode(b, t, v.Index(i))
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// t = function signature
+// v = golang type containing the values to encode
+func encode(b *abi.Builder, t abi.TypeName, v reflect.Value) error <span class="cov8" title="1">{
+        st := string(t)
+        switch </span>{
+        case t.IsTuple():<span class="cov8" title="1">
+                if v.Kind() != reflect.Struct </span><span class="cov0" title="0">{
+                        return fmt.Errorf("expected struct type to encode tuple into, but got '%v'", v.Kind())
+                }</span>
+                <span class="cov8" title="1">cur := b.EnterTuple()
+                targs := t.TupleArgs()
+                for i := 0; i &lt; v.NumField(); i++ </span><span class="cov8" title="1">{
+                        err := encode(cur, targs[i], v.Field(i))
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                }
+                <span class="cov8" title="1">cur.Exit()
+                return nil</span>
+        case t.IsFixedSlice():<span class="cov8" title="1">
+                if v.Kind() != reflect.Array </span><span class="cov0" title="0">{
+                        return fmt.Errorf("cannot encode %v into %s", v.Kind(), t)
+                }</span>
+                <span class="cov8" title="1">tn, l := t.UnSlice()
+                if l != v.Len() </span><span class="cov0" title="0">{
+                        return fmt.Errorf("solidity array length mismatch query: %v target: %v", l, v.Len())
+                }</span>
+                <span class="cov8" title="1">cur := b.EnterArray(tn, l)
+                err := EncodeArray(cur, tn, l, v)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">cur.Exit()
+                return nil</span>
+        case t.IsSlice():<span class="cov8" title="1">
+                if v.Kind() != reflect.Slice </span><span class="cov0" title="0">{
+                        return fmt.Errorf("cannot encode %s into %v", t, v.Type())
+                }</span>
+                <span class="cov8" title="1">tn, _ := t.UnSlice()
+                cur := b.EnterDynamicArray()
+                err := EncodeArray(cur, tn, v.Len(), v)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">cur.Exit()
+                return nil</span>
+        case t == abi.ADDRESS:<span class="cov8" title="1">
+                err := encodeReflectAddress(b, v)
+                return err</span>
+        case t == abi.BOOL:<span class="cov0" title="0">
+                b.Bool(v.Bool())
+                return nil</span>
+        case t == abi.STRING:<span class="cov8" title="1">
+                b.DString(v.String())
+                return nil</span>
+        case t == abi.BYTES:<span class="cov8" title="1">
+                switch v.Kind() </span>{
+                case reflect.String:<span class="cov8" title="1">
+                        b.DString(v.String())</span>
+                case reflect.Slice:<span class="cov0" title="0">
+                        b.Bytes(v.Bytes())</span>
+                default:<span class="cov0" title="0">
+                        b.Bytes(v.Bytes())</span>
+                }
+                <span class="cov8" title="1">return nil</span>
+        case strings.HasPrefix(st, "fixed"), strings.HasPrefix(st, "ufixed"), strings.HasPrefix(st, "int"), strings.HasPrefix(st, "uint"):<span class="cov8" title="1">
+                if st[0] == 'u' </span><span class="cov8" title="1">{
+                        if !v.CanUint() </span><span class="cov0" title="0">{
+                                ui, ok := v.Interface().(uint256.Int)
+                                if ok </span><span class="cov0" title="0">{
+                                        b.BigUint(&amp;ui)
+                                        return nil
+                                }</span>
+                                <span class="cov0" title="0">ui2, ok2 := v.Interface().(big.Int)
+                                if ok2 &amp;&amp; ui.Sign() &gt;= 0 </span><span class="cov0" title="0">{
+                                        b.BigInt(&amp;ui2)
+                                        return nil
+                                }</span>
+                                <span class="cov0" title="0">return fmt.Errorf("could not encode %v into %s", v.Kind(), st)</span>
+                        }
+                        <span class="cov8" title="1">i := v.Uint()
+                        b.BigUint(uint256.NewInt(i))
+                        return nil</span>
+                } else<span class="cov8" title="1"> {
+                        //fmt.Println(v.Type())
+                        if !v.CanInt() </span><span class="cov8" title="1">{
+                                //fmt.Println(v.Interface())
+                                ui, ok := v.Interface().(uint256.Int)
+                                //fmt.Printf("%v %v\n", ui, ok)
+                                if ok </span><span class="cov0" title="0">{
+                                        b.BigUint(&amp;ui)
+                                        return nil
+                                }</span>
+                                <span class="cov8" title="1">ui2, ok2 := v.Interface().(big.Int)
+                                if ok2 </span><span class="cov8" title="1">{
+                                        b.BigInt(&amp;ui2)
+                                        return nil
+                                }</span>
+                                <span class="cov0" title="0">return fmt.Errorf("could not encode %v into %s", v.Kind(), st)</span>
+                        }
+                        <span class="cov8" title="1">i := v.Int()
+                        b.BigInt(big.NewInt(i))
+                        return nil</span>
+                }
+        case strings.HasPrefix(st, "bytes") || t == abi.FUNCTION:<span class="cov8" title="1">
+                var amt int
+                var err error
+                if t == abi.FUNCTION </span><span class="cov0" title="0">{
+                        amt = 24
+                }</span> else<span class="cov8" title="1"> {
+                        bts := strings.TrimPrefix(st, "bytes")
+                        amt, err = strconv.Atoi(bts)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                }
+                <span class="cov8" title="1">return encodeReflectBytes(b, amt, v)</span>
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("encountered unknown type: %s", st)</span>
+        }
+}
+
+// n = number of bytes
+// will panic if not string or byte slice/array
+func encodeReflectBytes(b *abi.Builder, n int, v reflect.Value) error <span class="cov8" title="1">{
+        switch v.Kind() </span>{
+        case reflect.String:<span class="cov0" title="0">
+                b.FixedBytes(n, []byte(v.String()))</span>
+        case reflect.Slice, reflect.Array:<span class="cov8" title="1">
+                b.FixedBytes(n, v.Bytes())</span>
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("could not encode %v into bytes", v.Type())</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func encodeReflectAddress(b *abi.Builder, v reflect.Value) error <span class="cov8" title="1">{
+        var addr common.Address
+        switch v.Kind() </span>{
+        case reflect.String:<span class="cov8" title="1">
+                addr = common.HexToAddress(v.String())</span>
+        case reflect.Slice, reflect.Array:<span class="cov0" title="0">
+                addr = common.BytesToAddress(v.Elem().Bytes())</span>
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("could not encode %v into %v", v.Type(), addr)</span>
+        }
+        <span class="cov8" title="1">b.Address(addr)
+        return nil</span>
+}
+
+// func (b *Builder) NumberReflect(v reflect.Value) error {
+//         ui, err := v.Interface().(uint256.Int)
+//         if !err {
+//                 b.BigUint(&amp;ui)
+//                 return nil
+//         }
+//         i, err2 := v.Interface().(big.Int)
+//         if !err2 {
+//                 b.BigInt(&amp;i)
+//                 return nil
+//         }
+//         return fmt.Errorf("could not encode %v into %s", v.Kind(), st)
+// }
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package abir
+
+import (
+        "strings"
+        "unicode"
+)
+
+// tagOptions is the string following a comma in a struct field's "json"
+// tag, or the empty string. It does not include the leading comma.
+type tagOptions string
+
+// parseTag splits a struct field's json tag into its name and
+// comma-separated options.
+func parseTag(tag string) (string, tagOptions) <span class="cov8" title="1">{
+        tag, opt, _ := strings.Cut(tag, ",")
+        return tag, tagOptions(opt)
+}</span>
+
+// Contains reports whether a comma-separated list of options
+// contains a particular substr flag. substr must be surrounded by a
+// string boundary or commas.
+func (o tagOptions) Contains(optionName string) bool <span class="cov0" title="0">{
+        if len(o) == 0 </span><span class="cov0" title="0">{
+                return false
+        }</span>
+        <span class="cov0" title="0">s := string(o)
+        for s != "" </span><span class="cov0" title="0">{
+                var name string
+                name, s, _ = strings.Cut(s, ",")
+                if name == optionName </span><span class="cov0" title="0">{
+                        return true
+                }</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+func isValidTag(s string) bool <span class="cov0" title="0">{
+        if s == "" </span><span class="cov0" title="0">{
+                return false
+        }</span>
+        <span class="cov0" title="0">for _, c := range s </span><span class="cov0" title="0">{
+                switch </span>{
+                case strings.ContainsRune("()[]-", c):<span class="cov0" title="0"></span>
+                        // Backslash and quote chars are reserved, but
+                        // otherwise any punctuation chars are allowed
+                        // in a tag name.
+                case !unicode.IsLetter(c) &amp;&amp; !unicode.IsDigit(c):<span class="cov0" title="0">
+                        return false</span>
+                }
+        }
+        <span class="cov0" title="0">return true</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package abir
+
+import (
+        "encoding/hex"
+        "fmt"
+        "math/big"
+        "reflect"
+
+        "gfx.cafe/open/ghost/abi"
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/holiman/uint256"
+)
+
+type IntSet interface {
+        Set(*big.Int) *big.Int
+}
+
+type UInt256SetFromBig interface {
+        SetFromBig(*big.Int) bool
+}
+type SetStringErr interface {
+        SetString(string, int) error
+}
+
+type SetStringOk interface {
+        SetString(string, int) bool
+}
+
+func reflectBigNumeric(t abi.TypeName, ui *big.Int, target reflect.Value) error <span class="cov8" title="1">{
+        switch target.Kind() </span>{
+        case reflect.Pointer:<span class="cov8" title="1">
+                if target.Type().AssignableTo(typeBigIntPtr) </span><span class="cov0" title="0">{
+                        target.Set(reflect.ValueOf(ui))
+                        return nil
+                }</span>
+                <span class="cov8" title="1">switch ts := target.Interface().(type) </span>{
+                case IntSet:<span class="cov0" title="0">
+                        ts.Set(ui)
+                        return nil</span>
+                case UInt256SetFromBig:<span class="cov8" title="1">
+                        ts.SetFromBig(ui)
+                        return nil</span>
+                case SetStringErr:<span class="cov0" title="0">
+                        ts.SetString(ui.String(), 0)
+                        return nil</span>
+                case SetStringOk:<span class="cov0" title="0">
+                        ts.SetString(ui.String(), 0)
+                        return nil</span>
+                default:<span class="cov0" title="0"></span>
+                }
+                <span class="cov0" title="0">t2 := reflect.New(target.Type().Elem())
+                target.Set(t2)
+                target = t2.Elem()</span>
+        default:<span class="cov8" title="1"></span>
+        }
+        <span class="cov8" title="1">switch target.Kind() </span>{
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov0" title="0">
+                target.SetInt(ui.Int64())</span>
+        case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:<span class="cov8" title="1">
+                target.SetUint(ui.Uint64())</span>
+        case reflect.Float64, reflect.Float32:<span class="cov0" title="0">
+                target.SetFloat(float64(ui.Uint64()))</span>
+        case reflect.Struct:<span class="cov8" title="1">
+                if target.Type().AssignableTo(typeBigInt) </span><span class="cov8" title="1">{
+                        target.Set(reflect.ValueOf(*ui))
+                }</span> else<span class="cov8" title="1"> {
+                        var fidx int
+                        for i := 0; i &lt; target.NumField(); i++ </span><span class="cov8" title="1">{
+                        </span>skiptag:
+                                <span class="cov8" title="1">tag, _ := parseTag(target.Type().Field(fidx).Tag.Get("abi"))
+                                if tag == "-" </span><span class="cov0" title="0">{
+                                        fidx = fidx + 1
+                                        goto skiptag</span>
+                                }
+                                <span class="cov8" title="1">val := target.Field(fidx)
+                                return reflectBigNumeric(t, ui, val)</span>
+                        }
+                }
+        case reflect.Slice:<span class="cov0" title="0">
+                switch target.Type().Elem().Kind() </span>{
+                case reflect.Uint, reflect.Uint64:<span class="cov0" title="0">
+                        ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
+                        for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) </span><span class="cov0" title="0">{
+                                ns.Index(idx).SetUint(uint64(v))
+                        }</span>
+                        <span class="cov0" title="0">target.Set(ns)</span>
+                case reflect.Int64, reflect.Int:<span class="cov0" title="0">
+                        ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 4, 4)
+                        for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) </span><span class="cov0" title="0">{
+                                ns.Index(idx).SetInt(int64(v))
+                        }</span>
+                        <span class="cov0" title="0">target.Set(ns)</span>
+                case reflect.Uint8, reflect.Int8:<span class="cov0" title="0">
+                        ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 32, 32)
+                        for idx, v := range ui.Bytes() </span><span class="cov0" title="0">{
+                                ns.Index(idx).SetUint(uint64(v))
+                        }</span>
+                        <span class="cov0" title="0">target.Set(ns)</span>
+                default:<span class="cov0" title="0">
+                        return fmt.Errorf("could not slice %v into %v", t, target.Type())</span>
+                }
+        case reflect.Array:<span class="cov8" title="1">
+                switch target.Type().Elem().Kind() </span>{
+                case reflect.Uint, reflect.Uint64:<span class="cov8" title="1">
+                        for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) </span><span class="cov8" title="1">{
+                                target.Index(idx).SetUint(uint64(v))
+                        }</span>
+                case reflect.Int64, reflect.Int:<span class="cov0" title="0">
+                        for idx, v := range new(uint256.Int).SetBytes(ui.Bytes()) </span><span class="cov0" title="0">{
+                                target.Index(idx).SetInt(int64(v))
+                        }</span>
+                case reflect.Uint8, reflect.Int8:<span class="cov0" title="0">
+                        for idx, v := range ui.Bytes() </span><span class="cov0" title="0">{
+                                target.Index(idx).SetUint(uint64(v))
+                        }</span>
+                default:<span class="cov0" title="0">
+                        return fmt.Errorf("could not array %v into %v", t, target.Type())</span>
+                }
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("could not decode %v into %v", target.Type(), target.Kind())</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func reflectAddress(t abi.TypeName, addr common.Address, target reflect.Value) error <span class="cov8" title="1">{
+        switch target.Kind() </span>{
+        case reflect.String:<span class="cov8" title="1">
+                target.SetString(addr.Hex())</span>
+        case reflect.Slice:<span class="cov0" title="0">
+                ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), 20, 20)
+                for idx, v := range addr </span><span class="cov0" title="0">{
+                        ns.Index(idx).SetUint(uint64(v))
+                }</span>
+                <span class="cov0" title="0">target.Set(ns)</span>
+        case reflect.Array:<span class="cov8" title="1">
+                if target.Len() &lt; 20 </span><span class="cov0" title="0">{
+                        return fmt.Errorf("array too short")
+                }</span>
+                <span class="cov8" title="1">for idx, v := range addr </span><span class="cov8" title="1">{
+                        target.Index(idx).SetUint(uint64(v))
+                }</span>
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("could not decode %v into %v", addr, target.Type())</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func reflectBool(t abi.TypeName, bl bool, target reflect.Value) error <span class="cov8" title="1">{
+        switch target.Kind() </span>{
+        case reflect.Bool:<span class="cov8" title="1">
+                target.SetBool(bl)</span>
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov0" title="0">
+                if bl </span><span class="cov0" title="0">{
+                        target.SetInt(1)
+                }</span> else<span class="cov0" title="0"> {
+                        target.SetInt(0)
+                }</span>
+        case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:<span class="cov0" title="0">
+                if bl </span><span class="cov0" title="0">{
+                        target.SetUint(1)
+                }</span> else<span class="cov0" title="0"> {
+                        target.SetUint(0)
+                }</span>
+        case reflect.String:<span class="cov0" title="0">
+                if bl </span><span class="cov0" title="0">{
+                        target.SetString("true")
+                }</span> else<span class="cov0" title="0"> {
+                        target.SetString("false")
+                }</span>
+                <span class="cov0" title="0">return fmt.Errorf("could not decode %v into %v", bl, target.Type())</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func reflectString(t abi.TypeName, str string, target reflect.Value) error <span class="cov8" title="1">{
+        switch target.Kind() </span>{
+        case reflect.String:<span class="cov8" title="1">
+                target.SetString(str)</span>
+        case reflect.Slice:<span class="cov0" title="0">
+                ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), len(str), len(str))
+                target.Set(ns)
+                fallthrough</span>
+        case reflect.Array:<span class="cov0" title="0">
+                if target.Len() &lt; len(str) </span><span class="cov0" title="0">{
+                        return fmt.Errorf("array too short")
+                }</span>
+                <span class="cov0" title="0">for idx, v := range str </span><span class="cov0" title="0">{
+                        switch target.Type().Elem().Kind() </span>{
+                        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov0" title="0">
+                                target.Index(idx).SetInt(int64(v))</span>
+                        case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:<span class="cov0" title="0">
+                                target.Index(idx).SetUint(uint64(v))</span>
+                        default:<span class="cov0" title="0">
+                                return fmt.Errorf("could not decode %v into %v", v, target.Type().Elem().Kind())</span>
+                        }
+                }
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func reflectDynamicBytes(t abi.TypeName, str []byte, target reflect.Value) error <span class="cov0" title="0">{
+        target.SetBytes(str)
+        return nil
+}</span>
+
+func reflectFixedBytes(t abi.TypeName, addr []byte, target reflect.Value) error <span class="cov8" title="1">{
+        switch target.Kind() </span>{
+        case reflect.String:<span class="cov0" title="0">
+                target.SetString(hex.EncodeToString(addr))</span>
+        case reflect.Slice:<span class="cov8" title="1">
+                ns := reflect.MakeSlice(reflect.SliceOf(target.Type().Elem()), len(addr), len(addr))
+                for idx, v := range addr </span><span class="cov8" title="1">{
+                        ns.Index(idx).SetUint(uint64(v))
+                }</span>
+                <span class="cov8" title="1">target.Set(ns)</span>
+        case reflect.Array:<span class="cov8" title="1">
+                if target.Len() &lt; len(addr) </span><span class="cov0" title="0">{
+                        return fmt.Errorf("array too short")
+                }</span>
+                <span class="cov8" title="1">for idx, v := range addr </span><span class="cov8" title="1">{
+                        switch target.Type().Elem().Kind() </span>{
+                        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov0" title="0">
+                                target.Index(idx).SetInt(int64(v))</span>
+                        case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:<span class="cov8" title="1">
+                                target.Index(idx).SetUint(uint64(v))</span>
+                        default:<span class="cov0" title="0">
+                                return fmt.Errorf("could not decode %v into %v", v, target.Type().Elem().Kind())</span>
+                        }
+                }
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("could not decode %v into %v", addr, target.Type())</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">package multicall
+
+import (
+        "gfx.cafe/open/ghost/abi"
+        "github.com/ethereum/go-ethereum/common"
+        "github.com/holiman/uint256"
+)
+
+type Call struct {
+        Target common.Address
+        Data   []byte
+}
+
+type Call3 struct {
+        Target       common.Address
+        AllowFailure bool
+        Data         []byte
+}
+
+type Call3Value struct {
+        Target       common.Address
+        AllowFailure bool
+        Value        uint256.Int
+        Data         []byte
+}
+
+var tryAggregateSignature = abi.SIG("tryAggregate", abi.BOOL, abi.SLICE(abi.TUPLE(abi.ADDRESS, abi.BYTES))).Fn()
+
+func EncodeTryAggregate(requireSuccess bool, calls []Call) []byte <span class="cov0" title="0">{
+        b := new(abi.Builder)
+        b = b.Bool(requireSuccess)
+        b = b.EnterDynamicArray()
+        for _, v := range calls </span><span class="cov0" title="0">{
+                b.EnterTuple().Address(v.Target).Bytes(v.Data).Exit()
+        }</span>
+        <span class="cov0" title="0">b = b.Exit()
+        data := b.Finish(tryAggregateSignature)
+        return data</span>
+}
+
+var aggregate3Signature = abi.SIG("aggregate3", abi.SLICE(abi.TUPLE(abi.ADDRESS, abi.BOOL, abi.BYTES))).Fn()
+
+func EncodeAggregate3(calls []Call3) []byte <span class="cov0" title="0">{
+        b := new(abi.Builder)
+        b = b.EnterDynamicArray()
+        for _, v := range calls </span><span class="cov0" title="0">{
+                b.EnterTuple().Address(v.Target).Bool(v.AllowFailure).Bytes(v.Data).Exit()
+        }</span>
+        <span class="cov0" title="0">b = b.Exit()
+        data := b.Finish(aggregate3Signature)
+        return data</span>
+}
+
+var aggregate3ValueSignature = abi.SIG("aggregate3Value", abi.SLICE(abi.TUPLE(abi.ADDRESS, abi.BOOL, abi.UINT256, abi.BYTES))).Fn()
+
+func EncodeAggregate3Value(calls []Call3Value) []byte <span class="cov0" title="0">{
+        b := new(abi.Builder)
+        b = b.EnterDynamicArray()
+        for _, v := range calls </span><span class="cov0" title="0">{
+                b.EnterTuple().Address(v.Target).Bool(v.AllowFailure).Uint256(&amp;v.Value).Bytes(v.Data).Exit()
+        }</span>
+        <span class="cov0" title="0">b = b.Exit()
+        data := b.Finish(aggregate3ValueSignature)
+        return data</span>
+}
+
+type CallResult struct {
+        Success bool
+        Data    []byte
+        Err     error
+}
+
+func DecodeResult(data []byte) ([]*CallResult, error) <span class="cov0" title="0">{
+        dec := abi.NewDecoder(data)
+        d, l, err := dec.DynamicLength()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">abiRes := []*CallResult{}
+        for i := 0; i &lt; l; i++ </span><span class="cov0" title="0">{
+                bts := &amp;CallResult{}
+                nd, err := d.Dynamic()
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov0" title="0">bts.Success, err = nd.Bool()
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov0" title="0">bts.Data, err = nd.Bytes()
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov0" title="0">abiRes = append(abiRes, bts)</span>
+        }
+        <span class="cov0" title="0">return abiRes, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

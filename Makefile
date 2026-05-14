@@ -1,7 +1,11 @@
+.PHONY: test coverage clean
 
+test:
+	go test ./...
 
-build:
-	go build -o spook.out ./cmd/spook
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
 
-install:
-	mv spook.out $(HOME)/.local/bin/spook
+clean:
+	rm -f coverage.out coverage.html

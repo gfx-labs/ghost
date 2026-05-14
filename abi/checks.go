@@ -1,9 +1,5 @@
 package abi
 
-import "regexp"
-
-var dynamicRegexCheck = regexp.MustCompile("([a-z]+)\\[[0-9]+\\]")
-
 // isFixedArray checks if string ends with a fixed array pattern [n] where n is a number
 func isFixedArray(s string) bool {
 	n := len(s)

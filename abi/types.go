@@ -102,6 +102,11 @@ func isValidBaseType(t TypeName) bool {
 		return true
 	}
 
+	// if it is a tuple or a slice, it's not a base type
+	if !t.IsSimple() {
+		return false
+	}
+
 	// uint types: uint8, uint16, ..., uint256
 	if strings.HasPrefix(s, "uint") {
 		sizeStr := s[4:]
@@ -150,13 +155,13 @@ func isValidBaseType(t TypeName) bool {
 		rest := s[len(prefix):]
 
 		// Must have format MxN
-		parts := strings.Split(rest, "x")
-		if len(parts) != 2 {
+		cut := strings.Index(rest, "x")
+		if cut == -1 {
 			return false
 		}
 
-		m, err1 := strconv.Atoi(parts[0])
-		n, err2 := strconv.Atoi(parts[1])
+		m, err1 := strconv.Atoi(rest[:cut])
+		n, err2 := strconv.Atoi(rest[cut+1:])
 		if err1 != nil || err2 != nil {
 			return false
 		}
@@ -273,58 +278,6 @@ func TUPLE(elems ...TypeName) TypeName {
 	}
 	b.WriteRune(')')
 	return TypeName(b.String())
-}
-
-func pack(elems ...TypeName) TypeName {
-	if len(elems) == 1 {
-		return elems[0]
-	}
-	var b strings.Builder
-	n := len(elems) - 1
-	for i := 0; i < len(elems); i++ {
-		n += len(elems[i])
-	}
-	b.Grow(n)
-	b.WriteString(string(elems[0]))
-	for _, s := range elems[1:] {
-		b.WriteRune(',')
-		b.WriteString(string(s))
-	}
-	return TypeName(b.String())
-}
-
-func unpack(t TypeName) []TypeName {
-	s := string(t)
-	n := len(s) / 6
-	if 16 > n {
-		n = 16
-	}
-	out := make([]TypeName, 0, n)
-	str := strings.NewReader(s)
-	var cur strings.Builder
-	state := 0
-	for {
-		r, _, err := str.ReadRune()
-		if err != nil {
-			return out
-		}
-		if state == 0 && r == ')' {
-			out = append(out, TypeName(strings.TrimSpace(cur.String())))
-			return out
-		}
-		if r == '(' {
-			state = state + 1
-		}
-		if state > 0 && r == ')' {
-			state = state - 1
-		}
-		if state == 0 && r == ',' {
-			out = append(out, TypeName(strings.TrimSpace(cur.String())))
-			cur.Reset()
-		} else {
-			cur.WriteRune(r)
-		}
-	}
 }
 
 const (
