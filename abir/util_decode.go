@@ -159,11 +159,7 @@ func reflectBool(t abi.TypeName, bl bool, target reflect.Value) error {
 			target.SetUint(0)
 		}
 	case reflect.String:
-		if bl {
-			target.SetString("true")
-		} else {
-			target.SetString("false")
-		}
+		return fmt.Errorf("abi: cannot decode bool into string")
 	}
 
 	return nil
