@@ -340,3 +340,98 @@ func TestTypeNameIsValid(t *testing.T) {
 		}
 	}
 }
+
+func TestTypeNameIsNumber(t *testing.T) {
+	tests := []struct {
+		input    TypeName
+		expected bool
+	}{
+		{"uint256", true},
+		{"uint8", true},
+		{"int256", true},
+		{"int8", true},
+		{"fixed128x18", true},
+		{"ufixed128x18", true},
+		{"address", false},
+		{"bool", false},
+		{"string", false},
+		{"bytes", false},
+		{"bytes32", false},
+	}
+	for _, test := range tests {
+		result := test.input.IsNumber()
+		if result != test.expected {
+			t.Errorf("TypeName(%q).IsNumber() = %v, want %v", test.input, result, test.expected)
+		}
+	}
+}
+
+func TestTypeNameIsUnsigned(t *testing.T) {
+	tests := []struct {
+		input    TypeName
+		expected bool
+	}{
+		{"uint256", true},
+		{"uint8", true},
+		{"ufixed128x18", true},
+		{"int256", false},
+		{"int8", false},
+		{"fixed128x18", false},
+		{"address", false},
+		{"bool", false},
+		{"", false},
+	}
+	for _, test := range tests {
+		result := test.input.IsUnsigned()
+		if result != test.expected {
+			t.Errorf("TypeName(%q).IsUnsigned() = %v, want %v", test.input, result, test.expected)
+		}
+	}
+}
+
+func TestTypeNameIsSimple(t *testing.T) {
+	tests := []struct {
+		input    TypeName
+		expected bool
+	}{
+		{"uint256", true},
+		{"address", true},
+		{"bool", true},
+		{"bytes32", true},
+		{"uint256[]", false},
+		{"uint256[5]", true}, // IsSimple only checks !IsSlice && !IsTuple; fixed arrays pass
+		{"(uint256,address)", false},
+	}
+	for _, test := range tests {
+		result := test.input.IsSimple()
+		if result != test.expected {
+			t.Errorf("TypeName(%q).IsSimple() = %v, want %v", test.input, result, test.expected)
+		}
+	}
+}
+
+func TestFIXEDConstructor(t *testing.T) {
+	assert.Equal(t, TypeName("fixed128x18"), FIXED(128, 18))
+	assert.Equal(t, TypeName("fixed256x80"), FIXED(256, 80))
+	assert.Equal(t, TypeName("fixed8x0"), FIXED(8, 0))
+}
+
+func TestUFIXEDConstructor(t *testing.T) {
+	assert.Equal(t, TypeName("ufixed128x18"), UFIXED(128, 18))
+	assert.Equal(t, TypeName("ufixed256x80"), UFIXED(256, 80))
+	assert.Equal(t, TypeName("ufixed8x0"), UFIXED(8, 0))
+}
+
+func TestTUPLEEmpty(t *testing.T) {
+	assert.Equal(t, TypeName("()"), TUPLE())
+}
+
+func TestTUPLESingle(t *testing.T) {
+	assert.Equal(t, TypeName("(uint256)"), TUPLE(UINT256))
+}
+
+func TestARRAYConstructor(t *testing.T) {
+	assert.Equal(t, TypeName("uint256[4]"), ARRAY(UINT256, 4))
+	assert.Equal(t, TypeName("address[10]"), ARRAY(ADDRESS, 10))
+	assert.Equal(t, TypeName("(uint256,address)[3]"), ARRAY(TUPLE(UINT256, ADDRESS), 3))
+}

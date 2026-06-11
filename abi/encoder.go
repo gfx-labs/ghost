@@ -8,7 +8,26 @@ import (
 
 const lnlen = 32 // line length
 
-// Builder is used to encode ethereum abi
+// Builder constructs ABI-encoded byte sequences using a fluent API.
+//
+// Static values (uint, address, bool, fixed bytes) are written inline with
+// methods like [Builder.Uint], [Builder.Address], and [Builder.Bool].
+//
+// Dynamic values (strings, byte slices, dynamic arrays, tuples) require
+// entering a group with [Builder.EnterDynamicArray], [Builder.EnterTuple],
+// or [Builder.EnterArray], writing the contents, then calling [Builder.Exit]
+// to return to the parent context. The Builder handles offset calculation
+// and length prefixing automatically.
+//
+// Call [Builder.Finish] on the root builder to produce the final encoded bytes.
+// An optional prefix (typically a 4-byte function selector from [Signature.Fn])
+// can be prepended.
+//
+// A zero-value Builder is ready to use:
+//
+//	b := new(abi.Builder)
+//	b.Uint(42).DString("hello")
+//	encoded := b.Finish()
 type Builder struct {
 	NewMem   func() Memory
 	parent   *Builder
@@ -21,8 +40,11 @@ type Builder struct {
 	write    bool // whether to write length
 }
 
+// AbiBuilderOpt is a functional option for configuring a [Builder].
 type AbiBuilderOpt func(*Builder) *Builder
 
+// WithBuilderMemory returns an option that sets a custom [Memory] factory
+// for the builder. By default, Builder uses an internal slice-based memory.
 func WithBuilderMemory(fn func() Memory) AbiBuilderOpt {
 	return func(d *Builder) *Builder {
 		d.NewMem = fn
@@ -30,6 +52,8 @@ func WithBuilderMemory(fn func() Memory) AbiBuilderOpt {
 	}
 }
 
+// NewBuilder creates a Builder with the given options.
+// A zero-value Builder (&Builder{}) is also valid.
 func NewBuilder(opts ...AbiBuilderOpt) *Builder {
 	b := &Builder{}
 	for _, v := range opts {
@@ -51,18 +75,23 @@ func (d *Builder) Mem() Memory {
 	return &d.bm
 }
 
-// generic builder writer methods
+// PadRight writes xs zero-padded on the right to 32 bytes.
+// Used for bytesN and other right-aligned types.
 func (d *Builder) PadRight(xs []byte) *Builder {
 	d.Mem().Put(-1, padright(xs))
 	return d
 }
 
+// Word writes xs zero-padded on the left to 32 bytes.
+// Used for uint, int, address, and other left-aligned types.
 func (d *Builder) Word(xs []byte) *Builder {
 	d.Mem().Put(-1, padleft(xs))
 	return d
 }
 
-// finish closes all children, and returns the result slice
+// Finish finalizes the encoding, resolves all dynamic offsets, and returns
+// the encoded bytes. Optional prefix slices (typically a 4-byte function
+// selector) are prepended to the output.
 func (d *Builder) Finish(prefix ...[]byte) []byte {
 	if d.children != nil {
 		d.children = reorder(d.children)

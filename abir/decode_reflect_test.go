@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"gfx.cafe/open/ghost/abi"
+	"gfx.cafe/open/ghost/testutil"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestBasicTypeReflect(t *testing.T) {
-	dec := abi.HexDecoder(`
+	dec := testutil.HexDecoder(`
 0000000000000000000000000000000000000000000000000000000000000045
 0000000000000000000000000000000000000000000000000000000000000001`)
 	One := &big.Int{}
@@ -28,7 +29,7 @@ func TestBasicTypeReflect(t *testing.T) {
 	assert.True(t, Two)
 }
 func TestSimpleStruct(t *testing.T) {
-	dec := abi.HexDecoder(`0000000000000000000000000000000000000000000000000000000000000045`)
+	dec := testutil.HexDecoder(`0000000000000000000000000000000000000000000000000000000000000045`)
 
 	var res struct {
 		Data uint256.Int `abi:"uint256"`
@@ -44,7 +45,7 @@ func TestUintPtrDecodeInto(t *testing.T) {
 	var s struct {
 		Data *uint256.Int `abi:"uint256"`
 	}
-	dec := abi.HexDecoder(
+	dec := testutil.HexDecoder(
 		`0000000000000000000000000000000000000000000000000000000000000006`)
 	res := uint256.NewInt(0)
 	s.Data = res
@@ -57,7 +58,7 @@ func TestUintPtrDecodeInto(t *testing.T) {
 }
 
 func TestUintDecodeInto(t *testing.T) {
-	dec := abi.HexDecoder(
+	dec := testutil.HexDecoder(
 		`0000000000000000000000000000000000000000000000000000000000000006`)
 	var res uint256.Int
 	err := DecodeInto(dec, &res)
@@ -68,7 +69,7 @@ func TestUintDecodeInto(t *testing.T) {
 }
 
 func TestBytesDecodeInto(t *testing.T) {
-	dec := abi.HexDecoder(
+	dec := testutil.HexDecoder(
 		`0600000000000000000000000000000000000000000000000000000000000000`)
 	var res [32]byte
 	err := DecodeInto(dec, &res)
@@ -80,7 +81,7 @@ func TestBytesDecodeInto(t *testing.T) {
 }
 
 func TestHashDecodeInto(t *testing.T) {
-	dec := abi.HexDecoder(
+	dec := testutil.HexDecoder(
 		`0600000000000000000000000000000000000000000000000000000000000000`)
 	var res common.Hash
 	err := DecodeInto(dec, &res)
@@ -92,7 +93,7 @@ func TestHashDecodeInto(t *testing.T) {
 }
 
 func TestAddressReflect(t *testing.T) {
-	dec := abi.HexDecoder(
+	dec := testutil.HexDecoder(
 		`0000000000000000000000000000000000000000000000000000000000001234`)
 	var addr common.Address
 	err := Decode(dec, &addr, abi.ADDRESS)
@@ -120,7 +121,7 @@ func TestDynamicReflect(t *testing.T) {
 		D string  `abi:"string"`
 	}
 	var r f
-	dec := abi.HexDecoder(hex)
+	dec := testutil.HexDecoder(hex)
 	err := Decode(dec, &r, abi.INT64, abi.SLICE(abi.UINT64), abi.BYTES10, abi.STRING)
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +132,7 @@ func TestDynamicReflect(t *testing.T) {
 	assert.EqualValues(t, "Hello, world!", r.D)
 
 	var r2 f
-	dec2 := abi.HexDecoder(hex)
+	dec2 := testutil.HexDecoder(hex)
 	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)
@@ -155,7 +156,7 @@ func TestSimpleReflect(t *testing.T) {
 		B []uint `abi:"uint256[]"`
 	}
 	var r f
-	dec := abi.HexDecoder(hex)
+	dec := testutil.HexDecoder(hex)
 	err := Decode(dec, &r, abi.UINT, abi.SLICE(abi.UINT))
 	if err != nil {
 		t.Fatal(err)
@@ -163,7 +164,7 @@ func TestSimpleReflect(t *testing.T) {
 	assert.EqualValues(t, uint(7), r.A)
 	assert.EqualValues(t, []uint{0x21, 0x22, 0x23}, r.B)
 	var r2 f
-	dec2 := abi.HexDecoder(hex)
+	dec2 := testutil.HexDecoder(hex)
 	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)
@@ -201,7 +202,7 @@ func TestComplexReflect(t *testing.T) {
 		C [2]string `abi:"bytes[2]"`
 	}
 	var r f
-	dec := abi.HexDecoder(hex)
+	dec := testutil.HexDecoder(hex)
 	err := Decode(dec, &r, abi.UINT, abi.SLICE(abi.UINT), abi.ARRAY(abi.BYTES, 2))
 	if err != nil {
 		t.Fatal(err)
@@ -211,7 +212,7 @@ func TestComplexReflect(t *testing.T) {
 	assert.EqualValues(t, [2]string{"abcdefgh", "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, r.C)
 
 	var r2 f
-	dec2 := abi.HexDecoder(hex)
+	dec2 := testutil.HexDecoder(hex)
 	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)
@@ -289,7 +290,7 @@ func TestStructComplex(t *testing.T) {
 		B  uint
 	}
 	var r f
-	dec := abi.HexDecoder(hex)
+	dec := testutil.HexDecoder(hex)
 	err := Decode(dec, &r,
 		abi.UINT,
 		abi.ARRAY(abi.TUPLE(abi.ADDRESS, abi.SLICE(abi.TUPLE(abi.UINT, abi.UINT8, abi.UINT8))), 2),
@@ -321,7 +322,7 @@ func TestStructComplex(t *testing.T) {
 	assert.EqualValues(t, uint(8), r.B)
 
 	var r2 f
-	dec2 := abi.HexDecoder(hex)
+	dec2 := testutil.HexDecoder(hex)
 	err2 := DecodeInto(dec2, &r2)
 	if err2 != nil {
 		t.Fatal(err2)

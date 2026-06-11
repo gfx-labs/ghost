@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// PrettyHex formats a byte slice as hex with one 32-byte word per line,
+// separated by newlines. Useful for comparing ABI-encoded output in tests.
 func PrettyHex(xs []byte) string {
 	out := new(strings.Builder)
 	cur := len(xs) % 32

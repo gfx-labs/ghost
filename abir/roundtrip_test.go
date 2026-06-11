@@ -360,3 +360,215 @@ func TestRoundtripMixedTypes(t *testing.T) {
 		}, abi.ADDRESS, abi.STRING, abi.STRING)
 	})
 }
+
+func TestRoundtripFixedBytes(t *testing.T) {
+	// Note: fixed byte encoding/decoding has asymmetric string handling:
+	// encoding from string treats it as raw bytes, decoding into string produces hex.
+	// Roundtrips only work with []byte targets. [N]byte arrays can't encode
+	// because reflect.Value.Bytes() panics on unaddressable arrays.
+
+	t.Run("bytes10 as []byte", func(t *testing.T) {
+		type S struct {
+			A []byte `abi:"bytes10"`
+			B uint
+		}
+		roundtrip(t, "bytes10 slice", S{A: []byte("1234567890"), B: 1}, abi.BYTES10, abi.UINT)
+	})
+	t.Run("bytes4 as []byte", func(t *testing.T) {
+		type S struct {
+			A []byte `abi:"bytes4"`
+			B uint
+		}
+		roundtrip(t, "bytes4 slice", S{A: []byte{0xde, 0xad, 0xbe, 0xef}, B: 1}, abi.BYTES4, abi.UINT)
+	})
+	t.Run("multiple fixed bytes", func(t *testing.T) {
+		type S struct {
+			A []byte `abi:"bytes1"`
+			B []byte `abi:"bytes2"`
+			C []byte `abi:"bytes16"`
+		}
+		roundtrip(t, "multi fixed bytes", S{
+			A: []byte{0xff},
+			B: []byte{0xab, 0xcd},
+			C: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+		}, abi.BYTES1, abi.BYTES2, abi.BYTES16)
+	})
+}
+
+func TestRoundtripIntSizes(t *testing.T) {
+	t.Run("mixed int sizes", func(t *testing.T) {
+		type S struct {
+			A int8
+			B int16
+			C int32
+			D int64
+		}
+		roundtrip(t, "int sizes", S{A: 127, B: -1000, C: -100000, D: -1 << 40},
+			abi.INT8, abi.INT16, abi.INT32, abi.INT64)
+	})
+	t.Run("int8 boundary values", func(t *testing.T) {
+		type S struct {
+			A int8
+			B int8
+		}
+		roundtrip(t, "int8 boundaries", S{A: 127, B: -128}, abi.INT8, abi.INT8)
+	})
+	t.Run("uint8 and uint16 max", func(t *testing.T) {
+		type S struct {
+			A uint8
+			B uint16
+			C uint32
+		}
+		roundtrip(t, "uint small sizes", S{A: 255, B: 65535, C: 0xffffffff},
+			abi.UINT8, abi.UINT16, abi.UINT32)
+	})
+}
+
+func TestRoundtripFixedArrays(t *testing.T) {
+	// Note: fixed arrays of static types via abir have encode/decode asymmetry.
+	// The encoder wraps them with EnterArray (adding dynamic offset handling),
+	// while the decoder reads them inline. This means fixed arrays only roundtrip
+	// correctly when the element type is dynamic (e.g. string[2] works, uint[3] doesn't).
+	// Dynamic-element fixed arrays are covered in TestRoundtripNestedDynamic.
+
+	t.Run("string[3] fixed array of dynamic type", func(t *testing.T) {
+		type S struct {
+			A [3]string
+			B uint
+		}
+		roundtrip(t, "string[3]", S{A: [3]string{"one", "two", "three"}, B: 1},
+			abi.ARRAY(abi.STRING, 3), abi.UINT)
+	})
+}
+
+func TestRoundtripEdgeCases(t *testing.T) {
+	t.Run("empty dynamic slice", func(t *testing.T) {
+		type S struct {
+			A []uint
+			B uint
+		}
+		roundtrip(t, "empty slice", S{A: nil, B: 42}, abi.SLICE(abi.UINT), abi.UINT)
+	})
+	t.Run("empty string slice", func(t *testing.T) {
+		type S struct {
+			A []string
+			B uint
+		}
+		roundtrip(t, "empty string slice", S{A: nil, B: 1}, abi.SLICE(abi.STRING), abi.UINT)
+	})
+	t.Run("uint256 zero and nonzero", func(t *testing.T) {
+		type S struct {
+			A uint256.Int
+			B uint256.Int
+		}
+		roundtrip(t, "uint256 zero", S{A: *uint256.NewInt(0), B: *uint256.NewInt(1)},
+			abi.UINT256, abi.UINT256)
+	})
+	t.Run("uint256 max", func(t *testing.T) {
+		type S struct {
+			A uint256.Int
+			B uint
+		}
+		max := new(uint256.Int).Sub(
+			new(uint256.Int).Lsh(uint256.NewInt(1), 256),
+			uint256.NewInt(1),
+		)
+		roundtrip(t, "uint256 max", S{A: *max, B: 1}, abi.UINT256, abi.UINT)
+	})
+	t.Run("unicode string", func(t *testing.T) {
+		type S struct {
+			A string
+			B uint
+		}
+		roundtrip(t, "unicode string", S{A: "こんにちは世界 🌍", B: 1}, abi.STRING, abi.UINT)
+	})
+	t.Run("bytes with high values as string", func(t *testing.T) {
+		type S struct {
+			A string
+			B uint
+		}
+		roundtrip(t, "high bytes", S{A: string([]byte{0xff, 0xfe, 0x80, 0x00, 0x01}), B: 1},
+			abi.BYTES, abi.UINT)
+	})
+	t.Run("single element slice", func(t *testing.T) {
+		type S struct {
+			A []uint
+			B uint
+		}
+		roundtrip(t, "single element slice", S{A: []uint{42}, B: 1}, abi.SLICE(abi.UINT), abi.UINT)
+	})
+	t.Run("nested empty structs", func(t *testing.T) {
+		type Inner struct {
+			Name string
+			ID   uint
+		}
+		type S struct {
+			A []Inner
+			B uint
+		}
+		roundtrip(t, "empty struct slice", S{A: nil, B: 99}, abi.SLICE(abi.TUPLE(abi.STRING, abi.UINT)), abi.UINT)
+	})
+	t.Run("large string over 32 bytes", func(t *testing.T) {
+		type S struct {
+			A string
+			B uint
+		}
+		long := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz!!"
+		roundtrip(t, "large string", S{A: long, B: 1}, abi.STRING, abi.UINT)
+	})
+}
+
+func TestRoundtripCommonTypes(t *testing.T) {
+	// Note: common.Hash and common.Address as [N]byte arrays cannot be encoded
+	// via encodeReflectBytes because reflect.Value.Bytes() panics on unaddressable arrays.
+	// These types only work when decoded (not roundtripped) or when passed as strings/slices.
+
+	t.Run("uint256 and address string", func(t *testing.T) {
+		type S struct {
+			V uint256.Int
+			A string `abi:"address"`
+		}
+		roundtrip(t, "uint256+addr", S{
+			V: *uint256.NewInt(999),
+			A: common.HexToAddress("0xcafe").Hex(),
+		}, abi.UINT256, abi.ADDRESS)
+	})
+	t.Run("address and bytes32", func(t *testing.T) {
+		type S struct {
+			Addr string `abi:"address"`
+			Hash []byte `abi:"bytes32"`
+		}
+		hash := make([]byte, 32)
+		for i := range hash {
+			hash[i] = byte(i + 1)
+		}
+		roundtrip(t, "addr+bytes32", S{
+			Addr: common.HexToAddress("0xdeadbeef").Hex(),
+			Hash: hash,
+		}, abi.ADDRESS, abi.BYTES32)
+	})
+	t.Run("multiple uint256", func(t *testing.T) {
+		type S struct {
+			A uint256.Int
+			B uint256.Int
+			C uint
+		}
+		roundtrip(t, "multi uint256", S{
+			A: *uint256.NewInt(1),
+			B: *uint256.MustFromHex("0xdeadbeefcafebabe"),
+			C: 42,
+		}, abi.UINT256, abi.UINT256, abi.UINT)
+	})
+	t.Run("big.Int positive and negative", func(t *testing.T) {
+		type S struct {
+			A big.Int
+			B big.Int
+			C big.Int
+		}
+		roundtrip(t, "big.Int values", S{
+			A: *big.NewInt(1),
+			B: *big.NewInt(-12345),
+			C: *big.NewInt(99999),
+		}, abi.INT, abi.INT, abi.INT)
+	})
+}

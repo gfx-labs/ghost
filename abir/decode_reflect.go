@@ -10,10 +10,16 @@ import (
 	"gfx.cafe/open/ghost/abi"
 )
 
+// DecodeBytes is a convenience that creates a [abi.Decoder] from raw bytes
+// and calls [Decode].
 func DecodeBytes(xs []byte, v any, hint ...abi.TypeName) (err error) {
 	return Decode(abi.NewDecoder(xs), v, hint...)
 }
 
+// DecodeInto decodes ABI data into v by inferring ABI types from the Go type
+// of v using [CreateTypeName]. The value v must be a pointer. For struct types,
+// the struct fields are decoded as tuple arguments; for scalar types, a single
+// value is decoded.
 func DecodeInto(d *abi.Decoder, v any) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -37,9 +43,11 @@ func DecodeInto(d *abi.Decoder, v any) (err error) {
 	return Decode(d, v, tn)
 }
 
+// CreateTypeName maps a Go reflect.Type to its corresponding [abi.TypeName].
+// Known types (uint256.Int, big.Int, common.Address, common.Hash) are mapped
+// to their canonical ABI names. Struct fields with `abi` tags override the
+// inferred type. Fields tagged `abi:"-"` are skipped.
 func CreateTypeName(t reflect.Type) abi.TypeName {
-	//fmt.Printf("type: %v kind: %v\n", t, t.Kind())
-	// special overrides for some types that are "known"
 	switch t {
 	case typeUint256, typeUint256Ptr, typeBigInt, typeBigIntPtr:
 		return abi.UINT256
@@ -90,6 +98,13 @@ func CreateTypeName(t reflect.Type) abi.TypeName {
 	}
 }
 
+// Decode reads ABI-encoded data from d into v using the given type descriptors.
+//
+// With a single type argument, v can be a pointer to any supported Go type.
+// With multiple type arguments, v must be a pointer to a struct whose fields
+// correspond to the types in order. Fields tagged `abi:"-"` are skipped.
+//
+// Panics from the underlying decoder are caught and returned as errors.
 func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -135,7 +150,8 @@ func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) {
 	}
 }
 
-// v is type struct
+// DecodeTuple decodes a tuple type t into the struct value v.
+// Each tuple element is decoded into the corresponding struct field.
 func DecodeTuple(d *abi.Decoder, t abi.TypeName, v reflect.Value) (err error) {
 	targs := t.TupleArgs()
 	//fmt.Println(targs)
@@ -151,9 +167,8 @@ func DecodeTuple(d *abi.Decoder, t abi.TypeName, v reflect.Value) (err error) {
 	return nil
 }
 
-// t = type of array
-// l = length of array
-// v has to be a slice or array or will panic
+// DecodeArray decodes l elements of type t into the slice or array value v.
+// If v is a slice shorter than l, it is grown to fit.
 func DecodeArray(d *abi.Decoder, t abi.TypeName, l int, v reflect.Value) (err error) {
 	vlen := v.Len()
 	if l > vlen {
@@ -253,21 +268,10 @@ func decode(dec *abi.Decoder, t abi.TypeName, target reflect.Value) error {
 		if err != nil {
 			return err
 		}
+		if t == abi.BYTES && target.Kind() == reflect.Slice && target.Type().Elem().Kind() == reflect.Uint8 {
+			return reflectDynamicBytes(t, []byte(str), target)
+		}
 		return reflectString(t, str, target)
-	//case t == BYTES:
-	// sub, err := dec.Dynamic()
-	// if err != nil {
-	// 	return err
-	// }
-	// l, err := sub.Int()
-	// if err != nil {
-	// 	return err
-	// }
-	// bts, err := sub.N(l)
-	// if err != nil {
-	// 	return err
-	// }
-	// return reflectDynamicBytes(t, bts, target)
 	case strings.HasPrefix(st, "bytes") || t == abi.FUNCTION:
 		var amt int
 		var err error

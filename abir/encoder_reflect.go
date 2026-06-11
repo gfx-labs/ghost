@@ -12,6 +12,24 @@ import (
 	"github.com/holiman/uint256"
 )
 
+// Encode writes the Go value v into the [abi.Builder] b using the given
+// type descriptors.
+//
+// With a single type argument, v is encoded directly as that type.
+// With multiple type arguments, v must be a struct whose fields correspond
+// to the types in order.
+//
+// Supported Go types for encoding:
+//   - uint, uint8..uint64 for unsigned integers
+//   - int, int8..int64 for signed integers
+//   - uint256.Int and big.Int for 256-bit values
+//   - string for address (hex), string, and bytes types
+//   - []byte for bytes and bytesN types
+//   - bool for bool
+//   - structs for tuples
+//   - slices for dynamic arrays, arrays for fixed arrays
+//
+// Panics from the underlying builder are caught and returned as errors.
 func Encode(b *abi.Builder, v any, args ...abi.TypeName) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
@@ -44,6 +62,8 @@ func Encode(b *abi.Builder, v any, args ...abi.TypeName) (err error) {
 	}
 }
 
+// EncodeArray encodes l elements of type t from the slice or array value v.
+// Returns an error if v.Len() != l.
 func EncodeArray(b *abi.Builder, t abi.TypeName, l int, v reflect.Value) error {
 	if l != v.Len() {
 		return fmt.Errorf("length mismatch")
