@@ -8,7 +8,7 @@ Go library for EVM ABI encoding/decoding. Module path: `github.com/gfx-labs/ghos
 
 - `abi/` — low-level ABI encode/decode. Builder pattern for encoding, `Decoder` for decoding. All EVM types defined in `types.go`.
 - `abir/` — reflection-based ABI encode/decode mapping Go structs via `abi:"typename"` struct tags.
-- `abipath/` — path-based navigation of ABI-encoded data using a lexer from `gfx.cafe/util/go/lexer`.
+- `abipath/` — path-based navigation of ABI-encoded data. Includes an internal lexer in `abipath/lexer/`.
 - `utility/multicall/` — Multicall3 calldata builder using `abi.Builder`.
 
 ## Commands
