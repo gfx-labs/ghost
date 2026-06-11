@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"gfx.cafe/open/ghost/abi"
+	"github.com/gfx-labs/ghost/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"

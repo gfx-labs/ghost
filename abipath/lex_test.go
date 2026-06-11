@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"gfx.cafe/open/ghost/abipath/lexer"
+	"github.com/gfx-labs/ghost/abipath/lexer"
 )
 
 func word(v byte) []byte {

@@ -2,11 +2,10 @@
 
 ## What this is
 
-Go library for EVM ABI encoding/decoding. Module path: `gfx.cafe/open/ghost`. Hosted on self-hosted GitLab at `gfx.cafe`.
+Go library for EVM ABI encoding/decoding. Module path: `github.com/gfx-labs/ghost`. Hosted on GitHub at `github.com/gfx-labs/ghost`.
 
 ## Packages
 
-- `ghost` (root) — deprecated `Client` interface mirroring `ethclient.Client`. Don't extend.
 - `abi/` — low-level ABI encode/decode. Builder pattern for encoding, `Decoder` for decoding. All EVM types defined in `types.go`.
 - `abir/` — reflection-based ABI encode/decode mapping Go structs via `abi:"typename"` struct tags.
 - `abipath/` — path-based navigation of ABI-encoded data using a lexer from `gfx.cafe/util/go/lexer`.
@@ -23,7 +22,7 @@ No linter, formatter, or CI config exists — only `go vet`/`go test` apply.
 
 ## Testing
 
-- Uses `testify` (`assert`/`require`). Tests are white-box (same package) except root which is black-box (`ghost_test`).
+- Uses `testify` (`assert`/`require`). Tests are white-box (same package).
 - Table-driven tests throughout. ABI tests compare hex output via `PrettyHex()`.
 - `abir` roundtrip tests use generics to encode then decode structs.
 - No external services or fixtures needed.

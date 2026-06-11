@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gfx.cafe/open/ghost/abi"
+	"github.com/gfx-labs/ghost/abi"
 )
 
 // DecodeBytes is a convenience that creates a [abi.Decoder] from raw bytes

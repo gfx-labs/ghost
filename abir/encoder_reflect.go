@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gfx.cafe/open/ghost/abi"
+	"github.com/gfx-labs/ghost/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )

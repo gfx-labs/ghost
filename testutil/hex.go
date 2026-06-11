@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"gfx.cafe/open/ghost/abi"
+	"github.com/gfx-labs/ghost/abi"
 )
 
 var hexReplacer = strings.NewReplacer(
