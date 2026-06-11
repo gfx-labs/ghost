@@ -45,7 +45,7 @@ func (t TypeName) IsDynamic() bool {
 		t1 := TypeName(t[:i])
 		return t1.IsDynamic()
 	}
-	return t.IsSlice() || t == "bytes" || t == "string"
+	return t == "bytes" || t == "string"
 }
 
 // IsValid checks if the TypeName represents a valid Ethereum ABI type

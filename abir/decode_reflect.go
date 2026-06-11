@@ -87,9 +87,15 @@ func CreateTypeName(t reflect.Type) abi.TypeName {
 		return abi.BOOL
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		s := strings.ToLower(t.Kind().String())
+		if s == "int" {
+			return abi.INT256
+		}
 		return abi.TypeName(s)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		s := strings.ToLower(t.Kind().String())
+		if s == "uint" {
+			return abi.UINT256
+		}
 		return abi.TypeName(s)
 	case reflect.String:
 		return abi.STRING
@@ -130,15 +136,17 @@ func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) {
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to args decode into, but got '%v'", val.Kind())
 		}
-		//return d.decode(TUPLE(args...), val)
 		fidx := 0
 		for i := 0; i < len(args); i++ {
-			//fmt.Printf("%v -> %v\n", args[i], val.Field(i))
-		skiptag:
-			tag, _ := parseTag(val.Type().Field(fidx).Tag.Get("abi"))
-			if tag == "-" {
-				fidx = fidx + 1
-				goto skiptag
+			for fidx < val.NumField() {
+				tag, _ := parseTag(val.Type().Field(fidx).Tag.Get("abi"))
+				if tag != "-" {
+					break
+				}
+				fidx++
+			}
+			if fidx >= val.NumField() {
+				return fmt.Errorf("abi: more args than struct fields")
 			}
 			err = decode(d, args[i], val.Field(fidx))
 			if err != nil {
@@ -152,16 +160,23 @@ func Decode(d *abi.Decoder, v any, args ...abi.TypeName) (err error) {
 
 // DecodeTuple decodes a tuple type t into the struct value v.
 // Each tuple element is decoded into the corresponding struct field.
+// Fields tagged `abi:"-"` are skipped.
 func DecodeTuple(d *abi.Decoder, t abi.TypeName, v reflect.Value) (err error) {
 	targs := t.TupleArgs()
-	//fmt.Println(targs)
+	tidx := 0
 	for i := 0; i < v.NumField(); i++ {
-		//fmt.Printf("%v: %s\n", i, targs[i])
-		//fmt.Printf("before value %v kind %v type %v\n", val.Field(i), val.Field(i).Kind(), val.Field(i).Type())
-		err = decode(d, targs[i], v.Field(i))
+		tag, _ := parseTag(v.Type().Field(i).Tag.Get("abi"))
+		if tag == "-" {
+			continue
+		}
+		if tidx >= len(targs) {
+			return fmt.Errorf("abi: more struct fields than tuple args")
+		}
+		err = decode(d, targs[tidx], v.Field(i))
 		if err != nil {
 			return err
 		}
+		tidx++
 	}
 
 	return nil

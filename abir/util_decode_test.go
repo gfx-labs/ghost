@@ -181,9 +181,10 @@ func TestDecodeBoolTargets(t *testing.T) {
 		require.NoError(t, Decode(testutil.HexDecoder(falseWord), &v, abi.BOOL))
 		assert.Equal(t, uint(0), v)
 	})
-	t.Run("into string errors", func(t *testing.T) {
+	t.Run("into string", func(t *testing.T) {
 		var v string
-		assert.Error(t, Decode(testutil.HexDecoder(trueWord), &v, abi.BOOL))
+		require.NoError(t, Decode(testutil.HexDecoder(trueWord), &v, abi.BOOL))
+		assert.Equal(t, "true", v)
 	})
 }
 

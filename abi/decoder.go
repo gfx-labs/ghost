@@ -217,7 +217,7 @@ func (d *Decoder) Uint() (uint, error) {
 // Uint8 reads an unsigned integer and converts it to uint8.
 // Returns an error if the value exceeds 255.
 func (d *Decoder) Uint8() (uint8, error) {
-	ans, err := d.Int()
+	ans, err := d.Uint()
 	if err != nil {
 		return 0, err
 	}
@@ -228,13 +228,13 @@ func (d *Decoder) Uint8() (uint8, error) {
 }
 
 // Uint16 reads an unsigned integer and converts it to uint16.
-// Returns an error if the value exceeds 65536.
+// Returns an error if the value exceeds 65535.
 func (d *Decoder) Uint16() (uint16, error) {
-	ans, err := d.Int()
+	ans, err := d.Uint()
 	if err != nil {
 		return 0, err
 	}
-	if ans > 65536 {
+	if ans > 65535 {
 		return 0, errors.New("abi: uint16 overflow")
 	}
 	return uint16(ans), nil
@@ -250,11 +250,14 @@ func (d *Decoder) Dynamic() (*Decoder, error) {
 	if err != nil {
 		return nil, err
 	}
-	actual := int(offset.Uint64())
-	if len(d.xs) < actual {
+	if !offset.IsUint64() {
+		return nil, errors.New("abi: dynamic offset overflow")
+	}
+	off64 := offset.Uint64()
+	if off64 > uint64(len(d.xs)) {
 		return nil, errors.New("abi: dynamic overflow")
 	}
-	return NewDecoder(d.xs[actual:]), nil
+	return NewDecoder(d.xs[int(off64):]), nil
 }
 // DynamicLength reads a dynamic offset, then reads the length prefix at that
 // offset. Returns a sub-decoder positioned after the length word and the
@@ -269,12 +272,15 @@ func (d *Decoder) DynamicLength() (*Decoder, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	actual := int(offset.Uint64())
-	if len(d.xs) < actual {
+	if !offset.IsUint64() {
+		return nil, 0, errors.New("abi: dynamic offset overflow")
+	}
+	off64 := offset.Uint64()
+	if off64 > uint64(len(d.xs)) {
 		return nil, 0, errors.New("abi: dynamic overflow")
 	}
 	// hop over to the new one
-	dec1 := NewDecoder(d.xs[actual:])
+	dec1 := NewDecoder(d.xs[int(off64):])
 	l, err := dec1.Int()
 	if err != nil {
 		return nil, 0, errors.New("abi: len unexpected EOF")
@@ -297,11 +303,14 @@ func (d *Decoder) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	actual := int(offset.Uint64())
-	if len(d.xs) < actual {
+	if !offset.IsUint64() {
+		return nil, errors.New("abi: dynamic offset overflow")
+	}
+	off64 := offset.Uint64()
+	if off64 > uint64(len(d.xs)) {
 		return nil, errors.New("abi: dynamic overflow")
 	}
-	dec := NewDecoder(d.xs[actual:])
+	dec := NewDecoder(d.xs[int(off64):])
 	l, err := dec.Uint()
 	if err != nil {
 		return nil, err

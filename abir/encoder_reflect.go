@@ -50,13 +50,23 @@ func Encode(b *abi.Builder, v any, args ...abi.TypeName) (err error) {
 		if val.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct type to encode, but got '%v'", val.Kind())
 		}
-		//fmt.Println(args)
+		fidx := 0
 		for i := 0; i < len(args); i++ {
-			//fmt.Printf("%s : %v\n", args[i], val.Field(i))
-			err = encode(b, args[i], val.Field(i))
+			for fidx < val.NumField() {
+				tag, _ := parseTag(val.Type().Field(fidx).Tag.Get("abi"))
+				if tag != "-" {
+					break
+				}
+				fidx++
+			}
+			if fidx >= val.NumField() {
+				return fmt.Errorf("abi: more args than struct fields")
+			}
+			err = encode(b, args[i], val.Field(fidx))
 			if err != nil {
 				return err
 			}
+			fidx++
 		}
 		return nil
 	}
@@ -218,8 +228,15 @@ func encodeReflectAddress(b *abi.Builder, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.String:
 		addr = common.HexToAddress(v.String())
-	case reflect.Slice, reflect.Array:
-		addr = common.BytesToAddress(v.Elem().Bytes())
+	case reflect.Slice:
+		addr = common.BytesToAddress(v.Bytes())
+	case reflect.Array:
+		// Copy array elements into a slice to get bytes
+		bs := make([]byte, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			bs[i] = byte(v.Index(i).Uint())
+		}
+		addr = common.BytesToAddress(bs)
 	default:
 		return fmt.Errorf("could not encode %v into %v", v.Type(), addr)
 	}

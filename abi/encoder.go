@@ -66,13 +66,14 @@ func NewBuilder(opts ...AbiBuilderOpt) *Builder {
 
 // get the memory object, uses default memory impl by default
 func (d *Builder) Mem() Memory {
-	if d.mm != nil {
+	if d.mm == nil {
 		if d.NewMem != nil {
 			d.mm = d.NewMem()
+		} else {
+			return &d.bm
 		}
-		return d.mm
 	}
-	return &d.bm
+	return d.mm
 }
 
 // PadRight writes xs zero-padded on the right to 32 bytes.

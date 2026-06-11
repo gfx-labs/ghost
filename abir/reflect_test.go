@@ -127,19 +127,19 @@ func TestCreateTypeName(t *testing.T) {
 		{"*common.Address", reflect.TypeOf((*common.Address)(nil)), abi.ADDRESS},
 		{"bool", reflect.TypeOf(false), abi.BOOL},
 		{"string", reflect.TypeOf(""), abi.STRING},
-		{"uint", reflect.TypeOf(uint(0)), "uint"},
+		{"uint", reflect.TypeOf(uint(0)), abi.UINT256},
 		{"uint8", reflect.TypeOf(uint8(0)), "uint8"},
 		{"uint16", reflect.TypeOf(uint16(0)), "uint16"},
 		{"uint32", reflect.TypeOf(uint32(0)), "uint32"},
 		{"uint64", reflect.TypeOf(uint64(0)), "uint64"},
-		{"int", reflect.TypeOf(int(0)), "int"},
+		{"int", reflect.TypeOf(int(0)), abi.INT256},
 		{"int8", reflect.TypeOf(int8(0)), "int8"},
 		{"int64", reflect.TypeOf(int64(0)), "int64"},
-		{"[]uint", reflect.TypeOf([]uint{}), abi.SLICE("uint")},
-		{"[3]uint", reflect.TypeOf([3]uint{}), abi.ARRAY("uint", 3)},
+		{"[]uint", reflect.TypeOf([]uint{}), abi.SLICE(abi.UINT256)},
+		{"[3]uint", reflect.TypeOf([3]uint{}), abi.ARRAY(abi.UINT256, 3)},
 		{"[20]byte", reflect.TypeOf([20]byte{}), "bytes20"},
 		{"[32]byte", reflect.TypeOf([32]byte{}), "bytes32"},
-		{"*uint", reflect.TypeOf((*uint)(nil)), "uint"},
+		{"*uint", reflect.TypeOf((*uint)(nil)), abi.UINT256},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -149,7 +149,7 @@ func TestCreateTypeName(t *testing.T) {
 
 	t.Run("struct", func(t *testing.T) {
 		type S struct{ A uint; B string }
-		assert.Equal(t, abi.TUPLE("uint", abi.STRING), CreateTypeName(reflect.TypeOf(S{})))
+		assert.Equal(t, abi.TUPLE(abi.UINT256, abi.STRING), CreateTypeName(reflect.TypeOf(S{})))
 	})
 	t.Run("struct with abi tag", func(t *testing.T) {
 		type S struct{ A uint `abi:"uint256"`; B string `abi:"address"` }
@@ -157,7 +157,7 @@ func TestCreateTypeName(t *testing.T) {
 	})
 	t.Run("struct with skip tag", func(t *testing.T) {
 		type S struct{ Skip uint `abi:"-"`; A uint }
-		assert.Equal(t, abi.TUPLE("uint"), CreateTypeName(reflect.TypeOf(S{})))
+		assert.Equal(t, abi.TUPLE(abi.UINT256), CreateTypeName(reflect.TypeOf(S{})))
 	})
 }
 

@@ -64,13 +64,10 @@ func reflectBigNumeric(t abi.TypeName, ui *big.Int, target reflect.Value) error 
 		if target.Type().AssignableTo(typeBigInt) {
 			target.Set(reflect.ValueOf(*ui))
 		} else {
-			var fidx int
-			for i := 0; i < target.NumField(); i++ {
-			skiptag:
+			for fidx := 0; fidx < target.NumField(); fidx++ {
 				tag, _ := parseTag(target.Type().Field(fidx).Tag.Get("abi"))
 				if tag == "-" {
-					fidx = fidx + 1
-					goto skiptag
+					continue
 				}
 				val := target.Field(fidx)
 				return reflectBigNumeric(t, ui, val)
@@ -167,7 +164,6 @@ func reflectBool(t abi.TypeName, bl bool, target reflect.Value) error {
 		} else {
 			target.SetString("false")
 		}
-		return fmt.Errorf("could not decode %v into %v", bl, target.Type())
 	}
 
 	return nil
