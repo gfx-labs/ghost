@@ -6,6 +6,7 @@ require (
 	github.com/ethereum/go-ethereum v1.17.3
 	github.com/holiman/uint256 v1.3.2
 	github.com/stretchr/testify v1.11.1
+	github.com/urfave/cli/v3 v3.9.1
 )
 
 require (
