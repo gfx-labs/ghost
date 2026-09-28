@@ -245,15 +245,22 @@ func TestPointNested(t *testing.T) {
 }
 
 func TestPointNoAlloc(t *testing.T) {
-	// skipping must not copy, so large skips cost the same as none
-	data := make([]byte, 1<<20)
-	allocs := testing.AllocsPerRun(10, func() {
-		_, _ = Point("32767", data)
-	})
-	require.LessOrEqual(t, allocs, float64(1))
+	paths := map[string][]byte{
+		"./1":      words(64, 99, 3, 1, 2, 3),
+		"32767":    make([]byte, 1<<20),
+		"30000000": nil,
+		".":        words(255),
+	}
+	for path, data := range paths {
+		allocs := testing.AllocsPerRun(10, func() { _, _ = Point(path, data) })
+		require.Zero(t, allocs, path)
+	}
+}
 
-	allocs = testing.AllocsPerRun(10, func() {
-		_, _ = Point("30000000", nil)
-	})
-	require.LessOrEqual(t, allocs, float64(1))
+func BenchmarkPoint(b *testing.B) {
+	data := words(64, 99, 3, 1, 2, 3)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _ = Point("./1", data)
+	}
 }

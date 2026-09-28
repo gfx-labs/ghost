@@ -1,9 +1,11 @@
 package abi
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"io"
+	"math"
 	"math/big"
 	"strings"
 
@@ -57,6 +59,7 @@ func NewDecoder(xs []byte) *Decoder {
 		xs: xs,
 	}
 }
+
 // Remaining returns the unread portion of the underlying byte slice.
 func (d *Decoder) Remaining() []byte {
 	return d.xs[d.cur:]
@@ -255,19 +258,13 @@ func (d *Decoder) Uint16() (uint16, error) {
 //
 // The original decoder's cursor advances past the offset word.
 func (d *Decoder) Dynamic() (*Decoder, error) {
-	offset, err := d.Uint256()
+	off, err := d.offset()
 	if err != nil {
 		return nil, err
 	}
-	if !offset.IsUint64() {
-		return nil, errors.New("abi: dynamic offset overflow")
-	}
-	off64 := offset.Uint64()
-	if off64 > uint64(len(d.xs)) {
-		return nil, errors.New("abi: dynamic overflow")
-	}
-	return NewDecoder(d.xs[int(off64):]), nil
+	return NewDecoder(d.xs[off:]), nil
 }
+
 // DynamicLength reads a dynamic offset, then reads the length prefix at that
 // offset. Returns a sub-decoder positioned after the length word and the
 // element count. This is the standard pattern for reading dynamic arrays:
@@ -277,24 +274,50 @@ func (d *Decoder) Dynamic() (*Decoder, error) {
 //		val, _ := sub.Uint()
 //	}
 func (d *Decoder) DynamicLength() (*Decoder, int, error) {
-	offset, err := d.Uint256()
+	off, err := d.offset()
 	if err != nil {
 		return nil, 0, err
 	}
-	if !offset.IsUint64() {
-		return nil, 0, errors.New("abi: dynamic offset overflow")
+	xs := d.xs[off:]
+	if len(xs) < 32 {
+		return nil, 0, ErrLenEOF
 	}
-	off64 := offset.Uint64()
-	if off64 > uint64(len(d.xs)) {
-		return nil, 0, errors.New("abi: dynamic overflow")
+	l, ok := WordUint64(xs[:32])
+	if !ok || l > math.MaxInt64 {
+		return nil, 0, ErrLenOverflow
 	}
-	// hop over to the new one
-	dec1 := NewDecoder(d.xs[int(off64):])
-	l, err := dec1.Int()
-	if err != nil {
-		return nil, 0, errors.New("abi: len unexpected EOF")
+	return NewDecoder(xs[32:]), int(l), nil
+}
+
+// offset reads a word as a byte offset into the decoder's data.
+func (d *Decoder) offset() (int, error) {
+	if len(d.xs)-d.cur < 32 {
+		return 0, ErrUnexpectedEOF
 	}
-	return NewDecoder(dec1.xs[32:]), l, nil
+	w := d.xs[d.cur : d.cur+32]
+	d.cur += 32
+	off, ok := WordUint64(w)
+	if !ok {
+		return 0, ErrOffsetOverflow
+	}
+	if off > uint64(len(d.xs)) {
+		return 0, ErrDynamicOverflow
+	}
+	return int(off), nil
+}
+
+// WordUint64 decodes a 32-byte big-endian word as a uint64 without allocating.
+// Returns false if w is not 32 bytes or the value does not fit.
+func WordUint64(w []byte) (uint64, bool) {
+	if len(w) != 32 {
+		return 0, false
+	}
+	for _, b := range w[:24] {
+		if b != 0 {
+			return 0, false
+		}
+	}
+	return binary.BigEndian.Uint64(w[24:]), true
 }
 
 // DString reads a dynamic string by following its offset and length prefix.

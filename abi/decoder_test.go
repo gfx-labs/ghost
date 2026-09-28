@@ -628,3 +628,26 @@ func TestDecoderReadNPadRight32Bounds(t *testing.T) {
 	require.Equal(t, []byte{1, 2, 3, 4}, got)
 	require.Len(t, d.Remaining(), 32)
 }
+
+func TestWordUint64(t *testing.T) {
+	w := make([]byte, 32)
+	w[31], w[24] = 7, 1
+	v, ok := WordUint64(w)
+	require.True(t, ok)
+	require.Equal(t, uint64(1<<56|7), v)
+
+	w[23] = 1
+	_, ok = WordUint64(w)
+	require.False(t, ok)
+
+	_, ok = WordUint64(w[:31])
+	require.False(t, ok)
+}
+
+func TestDynamicLengthOverflow(t *testing.T) {
+	data := make([]byte, 64)
+	data[31] = 32
+	data[56] = 0x80 // length 2^63
+	_, _, err := NewDecoder(data).DynamicLength()
+	require.ErrorIs(t, err, ErrLenOverflow)
+}

@@ -19,28 +19,33 @@ var (
 //	"N"  skip N 32-byte words
 //
 // The returned slice aliases xs.
-func Point(p string, xs []byte) (out []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			out, err = nil, fmt.Errorf("abipath: %v", r)
-		}
-	}()
-	dec := abi.NewDecoder(xs)
+func Point(p string, xs []byte) ([]byte, error) {
+	// base is the region offsets are relative to, cur is the read position within it
+	base, cur := xs, 0
 	for i := 0; i < len(p); {
 		switch c := p[i]; {
-		case c == '.':
-			if dec, err = dec.Dynamic(); err != nil {
-				return nil, err
+		case c == '.', c == '/':
+			if len(base)-cur < 32 {
+				return nil, abi.ErrUnexpectedEOF
 			}
-			i++
-		case c == '/':
-			if dec, _, err = dec.DynamicLength(); err != nil {
-				return nil, err
+			off, ok := abi.WordUint64(base[cur : cur+32])
+			if !ok {
+				return nil, abi.ErrOffsetOverflow
+			}
+			if off > uint64(len(base)) {
+				return nil, abi.ErrDynamicOverflow
+			}
+			base, cur = base[off:], 0
+			if c == '/' {
+				if len(base) < 32 {
+					return nil, abi.ErrLenEOF
+				}
+				base = base[32:]
 			}
 			i++
 		case c >= '0' && c <= '9':
-			// n can never exceed the word count of the input, so cap it there to avoid overflow
-			limit := len(dec.Remaining()) / 32
+			// n can never exceed the words left in the input, so cap it there to avoid overflow
+			limit := (len(base) - cur) / 32
 			n := 0
 			for ; i < len(p) && p[i] >= '0' && p[i] <= '9'; i++ {
 				n = n*10 + int(p[i]-'0')
@@ -48,12 +53,22 @@ func Point(p string, xs []byte) (out []byte, err error) {
 					return nil, ErrOutOfBounds
 				}
 			}
-			if err = dec.Skip(n * 32); err != nil {
-				return nil, err
-			}
+			cur += n * 32
 		default:
-			return nil, fmt.Errorf("%w: %q at %d", ErrInvalidToken, c, i)
+			return nil, &InvalidTokenError{Pos: i, Char: c}
 		}
 	}
-	return dec.Remaining(), nil
+	return base[cur:], nil
 }
+
+// InvalidTokenError reports an unsupported character in a path.
+type InvalidTokenError struct {
+	Pos  int
+	Char byte
+}
+
+func (e *InvalidTokenError) Error() string {
+	return fmt.Sprintf("abipath: invalid path token %q at %d", e.Char, e.Pos)
+}
+
+func (e *InvalidTokenError) Unwrap() error { return ErrInvalidToken }
