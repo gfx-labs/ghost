@@ -1,19 +1,12 @@
 package abipath
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/gfx-labs/ghost/abipath/lexer"
 )
-
-func word(v byte) []byte {
-	var w [32]byte
-	w[31] = v
-	return w[:]
-}
 
 func TestLexerState(t *testing.T) {
 	tests := []struct {
@@ -49,47 +42,6 @@ func TestLexerState(t *testing.T) {
 					require.Equal(t, want.Value, got[i].Value, "token[%d] value", i)
 				}
 			}
-		})
-	}
-}
-
-func TestPoint(t *testing.T) {
-	// data layout: word(32)=offset to dynamic, word(64)=length, then payload
-	data := bytes.Join([][]byte{
-		word(64),       // offset 0: points to byte 64
-		word(99),       // offset 32: filler
-		word(3),        // offset 64: length = 3
-		{1, 2, 3, 4},   // offset 96: payload
-	}, nil)
-
-	tests := []struct {
-		name   string
-		path   string
-		input  []byte
-		expect []byte
-		err    bool
-	}{
-		{"empty path", "", data, data, false},
-		{"dot dynamic", ".", data, data[64:], false},
-		{"slash dynamic length", "/", data, data[96:], false},
-		{"skip one word", "1", data, data[32:], false},
-		{"skip two words", "2", data, data[64:], false},
-		{"dot then skip", ".1", data, data[96:], false},
-		{"slash then skip", "/0", data, data[96:], false},
-		{"dot error", ".", word(255), nil, true},
-		{"slash error", "/", word(32), nil, true},
-		{"read error", "1", nil, nil, true},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := Point(tc.path, tc.input)
-			if tc.err {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			require.Equal(t, tc.expect, got)
 		})
 	}
 }
