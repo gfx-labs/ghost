@@ -55,10 +55,6 @@ func TestPoint(t *testing.T) {
 		{"skip to end", "3", data[:96], []byte{}, false},
 		{"dot then skip", ".1", data, data[96:], false},
 		{"slash then skip", "/0", data, data[96:], false},
-		{"string ignored", "foo", data, data, false},
-		{"string before symbol ignored", "foo/", data, data[96:], false},
-		{"string after integer ignored", ".1b", data, data[96:], false},
-		{"string between symbols ignored", "a.b1", data, data[64:], false},
 		{"dot error", ".", word(255), nil, true},
 		{"slash error", "/", word(32), nil, true},
 		{"read error", "1", nil, nil, true},
@@ -98,6 +94,16 @@ func TestPointErrors(t *testing.T) {
 		{"slash missing length word", "/", word(32), nil},
 		{"error after valid step", "./", words(32, 64), nil},
 		{"multi digit skip past end", "10", words(1, 2, 3, 4, 5, 6, 7, 8, 9), abi.ErrUnexpectedEOF},
+		{"skip out of bounds", "2", words(1), ErrOutOfBounds},
+		{"skip overflows int", "288230376151711744", nil, ErrOutOfBounds},
+		{"skip exceeds atoi range", "99999999999999999999", words(1, 2), ErrOutOfBounds},
+		{"huge skip does not allocate", "30000000", nil, ErrOutOfBounds},
+		{"string", "foo", words(1), ErrInvalidToken},
+		{"string before symbol", "foo/", words(1), ErrInvalidToken},
+		{"string after integer", ".1b", words(32, 1, 2), ErrInvalidToken},
+		{"string between symbols", "a.b1", words(32), ErrInvalidToken},
+		{"space", "1 ", words(1, 2), ErrInvalidToken},
+		{"non ascii", "é", words(1), ErrInvalidToken},
 	}
 
 	for _, tc := range tests {
@@ -236,4 +242,18 @@ func TestPointNested(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, padRight("three"), got)
 	})
+}
+
+func TestPointNoAlloc(t *testing.T) {
+	// skipping must not copy, so large skips cost the same as none
+	data := make([]byte, 1<<20)
+	allocs := testing.AllocsPerRun(10, func() {
+		_, _ = Point("32767", data)
+	})
+	require.LessOrEqual(t, allocs, float64(1))
+
+	allocs = testing.AllocsPerRun(10, func() {
+		_, _ = Point("30000000", nil)
+	})
+	require.LessOrEqual(t, allocs, float64(1))
 }

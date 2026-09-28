@@ -104,12 +104,24 @@ func (d *Decoder) Read(o []byte) (int, error) {
 
 // ReadN reads exactly n bytes and advances the cursor.
 func (d *Decoder) ReadN(n int) ([]byte, error) {
+	if n < 0 || n > len(d.xs)-d.cur {
+		return nil, ErrUnexpectedEOF
+	}
 	o := make([]byte, n)
 	_, err := d.Read(o[:])
 	if err != nil {
 		return nil, err
 	}
 	return o, nil
+}
+
+// Skip advances the cursor by n bytes without copying.
+func (d *Decoder) Skip(n int) error {
+	if n < 0 || n > len(d.xs)-d.cur {
+		return ErrUnexpectedEOF
+	}
+	d.cur += n
+	return nil
 }
 
 // ReadWord reads a 32-byte word and advances the cursor.
@@ -128,15 +140,12 @@ func (d *Decoder) ReadNPadRight32(n int) ([]byte, error) {
 	if diff == 32 {
 		diff = 0
 	}
+	if n < 0 || n > len(d.xs)-d.cur-diff {
+		return nil, ErrUnexpectedEOF
+	}
 	o := make([]byte, n)
-	_, err := d.Read(o[:])
-	if err != nil {
-		return nil, err
-	}
-	_, err = d.ReadN(diff)
-	if err != nil {
-		return nil, err
-	}
+	copy(o, d.xs[d.cur:d.cur+n])
+	d.cur += n + diff
 	return o, nil
 }
 

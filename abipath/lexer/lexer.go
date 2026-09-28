@@ -28,12 +28,11 @@ type Token struct {
 	Value string
 }
 
-func (t Token) Int() (i int) {
-	if t.Type == IntegerToken {
-		i, _ = strconv.Atoi(t.Value)
-		return
+func (t Token) Int() (int, error) {
+	if t.Type != IntegerToken {
+		return 0, errors.New("lexer: not an integer token")
 	}
-	return
+	return strconv.Atoi(t.Value)
 }
 
 type StateFn func(*Lex) StateFn
@@ -86,6 +85,9 @@ func (l *Lex) ConsumeWithUntilErr(fn func(tok *Token) error) error {
 		}
 		err := fn(tok)
 		if err != nil {
+			// drain so the producer goroutine can exit
+			for range l.tokens {
+			}
 			return err
 		}
 	}
@@ -155,13 +157,12 @@ func (l *Lex) Rewind() {
 	}
 }
 
-// either emits an error and calls the error handler, or panics if there is no error handler
+// records the error and calls the error handler if one is set
 func (l *Lex) Error(e string) {
-	if l.ErrHandler == nil {
-		panic(e)
-	}
 	l.Err = errors.New(e)
-	l.ErrHandler(e)
+	if l.ErrHandler != nil {
+		l.ErrHandler(e)
+	}
 }
 
 // recursive reader

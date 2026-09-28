@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasic(t *testing.T) {
@@ -594,4 +595,36 @@ deadbeef00000000000000000000000000000000000000000000000000000000`)
 	bts, err := dec.Bytes()
 	assert.NoError(t, err)
 	assert.Equal(t, []byte{0xde, 0xad, 0xbe, 0xef}, bts)
+}
+
+func TestDecoderSkip(t *testing.T) {
+	d := NewDecoder(make([]byte, 64))
+	require.NoError(t, d.Skip(32))
+	require.Len(t, d.Remaining(), 32)
+	require.ErrorIs(t, d.Skip(33), ErrUnexpectedEOF)
+	require.ErrorIs(t, d.Skip(-1), ErrUnexpectedEOF)
+	require.Len(t, d.Remaining(), 32)
+	require.NoError(t, d.Skip(32))
+	require.Empty(t, d.Remaining())
+}
+
+func TestDecoderReadNBounds(t *testing.T) {
+	d := NewDecoder(make([]byte, 8))
+	_, err := d.ReadN(-1)
+	require.ErrorIs(t, err, ErrUnexpectedEOF)
+	allocs := testing.AllocsPerRun(10, func() { _, _ = d.ReadN(1 << 30) })
+	require.Zero(t, allocs)
+}
+
+func TestDecoderReadNPadRight32Bounds(t *testing.T) {
+	d := NewDecoder(make([]byte, 31))
+	_, err := d.ReadNPadRight32(4)
+	require.ErrorIs(t, err, ErrUnexpectedEOF)
+	require.Len(t, d.Remaining(), 31)
+
+	d = NewDecoder(append([]byte{1, 2, 3, 4}, make([]byte, 60)...))
+	got, err := d.ReadNPadRight32(4)
+	require.NoError(t, err)
+	require.Equal(t, []byte{1, 2, 3, 4}, got)
+	require.Len(t, d.Remaining(), 32)
 }
